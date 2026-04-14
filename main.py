@@ -6,7 +6,6 @@ import re
 
 app = FastAPI()
 
-# 1. 定义前台接待员：告诉扣子我们要接收哪些参数
 class FormatRequest(BaseModel):
     pure_content: Optional[str] = ""
     category: Optional[str] = "内部教辅资料"
@@ -14,59 +13,64 @@ class FormatRequest(BaseModel):
     theme_colors: Optional[str] = ""
     zjmk_ty: Optional[str] = ""
     zjmk_zs: Optional[str] = ""
-    original_text: Optional[Any] = []  # 接收那个复杂的数组对象
+    original_text: Optional[Any] = []
 
-# 2. 开通对外服务的接口地址
 @app.post("/generate_html")
 async def generate_html(req: FormatRequest):
-    # 提取常规的字符串参数
-    # content_area = req.pure_content
-    # 提取常规的字符串参数
-    content_area = req.pure_content
+    # 1. 安全获取基础参数
+    doc_category = req.category or "内部教辅资料"
+    doc_title = req.title_info or "教辅排版引擎"
+    theme_colors = req.theme_colors or ""
+    clean_zjmk_ty = (req.zjmk_ty or "").strip()
+    clean_zjmk_zs = (req.zjmk_zs or "").strip()
 
     # =======================================================
-    # 🚨 终极防护：应对 Coze 对 pure_content 的错误打包和转义
+    # 🛡️ 第一战区：处理 pure_content（防 Coze 变态打包）
     # =======================================================
-    if isinstance(content_area, str):
-        # 1. 尝试解包（如果 Coze 把整个字典连带 debug_chunk_count 一起传过来了）
+    content_area = req.pure_content
+
+    if isinstance(content_area, str) and content_area.strip():
+        # 尝试解包：如果是一整个 JSON 字典被打包成了字符串
         try:
             parsed = json.loads(content_area)
             if isinstance(parsed, dict) and "pure_content" in parsed:
                 content_area = parsed["pure_content"]
+            elif isinstance(parsed, dict) and "htmlCode" in parsed: # 预防传错字段
+                 content_area = parsed["htmlCode"]
         except Exception:
             pass
 
-        # 2. 暴力解除转义：让 class=\"xxx\" 完美还原成 class="xxx"
-        content_area = str(content_area).replace('\\"', '"').replace('\\n', '')
+        content_str = str(content_area)
+        
+        # 暴力洗澡：不管有多少层反斜杠转义的引号，全洗掉
+        content_str = re.sub(r'\\+"', '"', content_str)
+        # 把被转义的换行符还原（不要直接删掉，可能会让标签连在一起）
+        content_str = content_str.replace('\\n', '\n')
 
-        # 3. 终极过滤：如果它依然是一个带有 {" 前缀的残留废料
-        if content_area.startswith('{"<'):
-            content_area = re.sub(r'^\{"', '', content_area)
-            content_area = re.sub(r'",\s*"debug_chunk_count".*?\}$', '', content_area, flags=re.DOTALL)
+        # 终极物理开膛手（性能优化版）：寻找第一个 < 到 最后一个 > 之间的所有内容
+        # 使用贪婪匹配，忽略首尾可能因为强制转换 JSON 带来的 {" 或 "} 等垃圾字符
+        match = re.search(r'(<[\s\S]+>)', content_str)
+        if match:
+            content_area = match.group(1)
+        else:
+             content_area = content_str # 如果连标签都找不到，原样兜底
+
+    else:
+        content_area = str(content_area) # 极度异常情况兜底
+
     # =======================================================
-
-    doc_category = req.category
-    doc_title = req.title_info
-    doc_category = req.category
-    doc_title = req.title_info
-    theme_colors = req.theme_colors
-    clean_zjmk_ty = req.zjmk_ty.strip()
-    clean_zjmk_zs = req.zjmk_zs.strip()
-
+    # 🛡️ 第二战区：处理 original_text（防嵌套解析死锁）
+    # =======================================================
     original_raw = req.original_text
 
-    # 🚨 终极解包逻辑：应对 Coze 的各种字符串花样
     if isinstance(original_raw, str):
         try:
-            # 第一层：尝试标准的 JSON 解析
             original_raw = json.loads(original_raw)
         except Exception:
             pass
 
-    # 如果解开一层之后发现里面居然还是一个字符串（嵌套转义的情况）
     if isinstance(original_raw, str):
         try:
-            # 第二层：针对极其顽固的二次转义 JSON 进行清理和再解析
             cleaned_str = original_raw.replace('\\n', '\n').replace('\\"', '"')
             original_raw = json.loads(cleaned_str)
         except Exception:
@@ -74,7 +78,6 @@ async def generate_html(req: FormatRequest):
 
     extracted_text = ""
 
-    # 🎯 照抄你成功的 Array Object 拆包逻辑！
     if isinstance(original_raw, list):
         for item in original_raw:
             if isinstance(item, dict) and item.get("data"):
@@ -87,19 +90,17 @@ async def generate_html(req: FormatRequest):
         extracted_text = str(original_raw)
 
     # =======================================================
-    # 🚨 新增：Markdown 符号大清洗（对齐大模型的输出）
+    # 🛡️ 第三战区：Markdown 符号大清洗（防 Diff 误报）
     # =======================================================
     if extracted_text:
-        # 1. 剔除行首的标题符号 (如 ### , #### )
         extracted_text = re.sub(r'(?m)^#+\s*', '', extracted_text)
-        # 2. 剔除加粗和斜体符号 (如 **文字** 变成 文字)
         extracted_text = re.sub(r'\*+', '', extracted_text)
-        # 3. 剔除无序列表符号 (如 - 或 + 开头)
         extracted_text = re.sub(r'(?m)^[-+]\s+', '', extracted_text)
-        # 4. 剔除引用符号 (如 > )
         extracted_text = re.sub(r'(?m)^>\s*', '', extracted_text)
-    # =======================================================
 
+    # =======================================================
+    # 🛡️ 第四战区：组装与安全输出
+    # =======================================================
     final_style_content = clean_zjmk_ty + "\n\n" + clean_zjmk_zs
 
     # 安全序列化，防网页 JS 崩溃
