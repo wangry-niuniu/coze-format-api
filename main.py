@@ -317,7 +317,7 @@ async def generate_html(req: FormatRequest):
                 try {
                     const rawDataStr = document.getElementById('raw-source-data').textContent;
                     let originalText = "";
-                    if (rawDataStr && rawDataStr.trim() !== "__ORIGINAL_TEXT__") {
+                    if (rawDataStr && rawDataStr.trim() !== "") {
                         originalText = JSON.parse(rawDataStr);
                     } else {
                         contentArea.innerHTML = '<div style="color:#b91c1c;">未检测到原始数据！请确保传入了 original_text。</div>';
