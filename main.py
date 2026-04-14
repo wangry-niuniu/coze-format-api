@@ -20,7 +20,33 @@ class FormatRequest(BaseModel):
 @app.post("/generate_html")
 async def generate_html(req: FormatRequest):
     # 提取常规的字符串参数
+    # content_area = req.pure_content
+    # 提取常规的字符串参数
     content_area = req.pure_content
+
+    # =======================================================
+    # 🚨 终极防护：应对 Coze 对 pure_content 的错误打包和转义
+    # =======================================================
+    if isinstance(content_area, str):
+        # 1. 尝试解包（如果 Coze 把整个字典连带 debug_chunk_count 一起传过来了）
+        try:
+            parsed = json.loads(content_area)
+            if isinstance(parsed, dict) and "pure_content" in parsed:
+                content_area = parsed["pure_content"]
+        except Exception:
+            pass
+
+        # 2. 暴力解除转义：让 class=\"xxx\" 完美还原成 class="xxx"
+        content_area = str(content_area).replace('\\"', '"').replace('\\n', '')
+
+        # 3. 终极过滤：如果它依然是一个带有 {" 前缀的残留废料
+        if content_area.startswith('{"<'):
+            content_area = re.sub(r'^\{"', '', content_area)
+            content_area = re.sub(r'",\s*"debug_chunk_count".*?\}$', '', content_area, flags=re.DOTALL)
+    # =======================================================
+
+    doc_category = req.category
+    doc_title = req.title_info
     doc_category = req.category
     doc_title = req.title_info
     theme_colors = req.theme_colors
