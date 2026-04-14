@@ -305,7 +305,7 @@ async def generate_html(req: FormatRequest):
         window.applyToText = function(varName, command) { const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); if (color) document.execCommand(command, false, color); };
         let globalExtractedVars = [];
         
-        // 🚨 刷新色板UI
+        // 🚨 刷新色板UI（终极防引号报错版）
         function initDynamicColorPanel() { 
             const baseContainer = document.getElementById('panel-base-colors'); 
             const compContainer = document.getElementById('panel-comp-colors'); 
@@ -330,21 +330,29 @@ async def generate_html(req: FormatRequest):
                     
                     let wrapper = document.createElement('div'); 
                     wrapper.className = 'color-row'; 
-                    wrapper.innerHTML = '<span style="color:#475569; flex-grow:1; font-weight:600; font-size:12px;" title="' + v + '">' + cleanName + '</span><div style="display:flex; align-items:center; gap:4px;"><input type="color" value="' + currentVal + '" class="dyn-color-picker" data-var="' + v + '" style="width:24px;height:24px;padding:0;border:none;cursor:pointer; border-radius:6px; background:transparent;"><button class="color-tool-btn" title="给选中的字上色" onclick="applyToText(\'' + v + '\', \'foreColor\')">[字]</button><button class="color-tool-btn" title="给选中的字加高亮背景" onclick="applyToText(\'' + v + '\', \'backColor\')">[底]</button></div>'; 
+                    // 👇 魔法在此：使用反引号 (`) 彻底解决 Python-JS 引号转义冲突
+                    wrapper.innerHTML = `
+                        <span style="color:#475569; flex-grow:1; font-weight:600; font-size:12px;" title="${v}">${cleanName}</span>
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <input type="color" value="${currentVal}" class="dyn-color-picker" data-var="${v}" style="width:24px;height:24px;padding:0;border:none;cursor:pointer; border-radius:6px; background:transparent;">
+                            <button class="color-tool-btn" title="给选中的字上色" onclick="applyToText('${v}', 'foreColor')">[字]</button>
+                            <button class="color-tool-btn" title="给选中的字加高亮背景" onclick="applyToText('${v}', 'backColor')">[底]</button>
+                        </div>
+                    `;
                     
                     wrapper.querySelector('input').addEventListener('input', (e) => { 
                         rootStyle.setProperty(v, e.target.value); 
                         safeSetStorage(v, e.target.value);
-                        buildHoverToolbar(); // 颜色改变时，同步刷新悬浮菜单
+                        buildHoverToolbar(); // 同步刷新悬浮菜单
                     }); 
                     targetContainer.appendChild(wrapper); 
                 } 
             }); 
             if(compContainer.children.length === 0) document.getElementById('group-comp-colors').style.display = 'none'; 
             if(baseContainer.children.length === 0) document.getElementById('group-base-colors').style.display = 'none';
-            buildHoverToolbar(); // 构建悬浮菜单
+            if(typeof buildHoverToolbar === 'function') buildHoverToolbar(); 
         }
-
+        
         // 🎨 真正的实体化数学混色逻辑
         document.getElementById('color-image-upload').addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
