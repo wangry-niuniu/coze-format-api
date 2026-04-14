@@ -14,7 +14,7 @@ class FormatRequest(BaseModel):
     theme_colors: Optional[str] = ""
     zjmk_ty: Optional[str] = ""
     zjmk_zs: Optional[str] = ""
-    original_text: Optional[Any] = []  # 接收那个复杂的数组对象
+    original_text: Optional[Any] = []
 
 # 2. 开通对外服务的接口地址
 @app.post("/generate_html")
@@ -25,7 +25,6 @@ async def generate_html(req: FormatRequest):
     content_area = req.pure_content
     
     if isinstance(content_area, str):
-        # 1. 尝试解包（如果 Coze 把整个字典连带 debug_chunk_count 一起传过来了）
         try:
             parsed = json.loads(content_area)
             if isinstance(parsed, dict) and "pure_content" in parsed:
@@ -33,15 +32,12 @@ async def generate_html(req: FormatRequest):
         except Exception:
             pass
         
-        # 2. 暴力解除转义：让 class=\"xxx\" 完美还原成 class="xxx"
         content_area = str(content_area).replace('\\"', '"').replace('\\n', '')
         
-        # 3. 终极过滤：如果它依然是一个带有 {" 前缀的残留废料
         if content_area.startswith('{"<'):
             content_area = re.sub(r'^\{"', '', content_area)
             content_area = re.sub(r'",\s*"debug_chunk_count".*?\}$', '', content_area, flags=re.DOTALL)
 
-    # 提取常规的字符串参数
     doc_category = req.category
     doc_title = req.title_info
     theme_colors = req.theme_colors
@@ -103,11 +99,9 @@ async def generate_html(req: FormatRequest):
     <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 
     <style id="dynamic-style">
-        /* 基础打印与重置 */
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
         
         :root {
-            /* 默认主题 */
             --c-primary: #52A89E; --c-star: #2D7A71; --c-highlight: #D59A44;
             --c-mod-point: #9A7EB4; --c-mod-mnemonic: #E88796; --c-mod-practice: #48BB78;
             --c-border: #CBE3E0; --c-case-bg: #EAF5F4; --c-secondary: #F4FAFA;
@@ -119,7 +113,6 @@ async def generate_html(req: FormatRequest):
 
         body { background-color: #F8FAFC; font-family: var(--f-family, sans-serif); margin: 0; padding: 0; display: flex; gap: 30px; justify-content: center; overflow-x: hidden; color: #334155; }
         
-        /* A4 纸张高级投影 */
         .a4-container { flex: 1; max-width: 210mm; display: flex; flex-direction: column; gap: 20px; align-items: center; padding-top: 30px; padding-bottom: 40px; transition: margin-right 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .a4-page { width: 210mm; min-height: 297mm; height: auto; overflow: visible; position: relative; padding: 18mm 15mm 30mm 15mm; page-break-after: always; background: #FFFFFF; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0,0,0,0.03); border-radius: 2px; flex-shrink: 0; }
         
@@ -130,9 +123,9 @@ async def generate_html(req: FormatRequest):
         .page-content, .page-header, .page-footer { transition: all 0.2s ease; border-radius: 4px; }
         .page-content { display: flow-root; width: 100%; font-size: var(--f-size-base, 14px); line-height: var(--line-height, 1.8); letter-spacing: var(--letter-spacing, 0px); font-family: var(--f-family) !important; }
         
-        /* 🚀 修复版页眉页脚 */
-        .page-header { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid var(--c-border); padding-bottom: 6px; font-size: 10px; color: var(--c-star); font-weight: bold; }
-        .page-footer { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--c-primary); opacity: 0.8; border-top: 1px dashed var(--c-border); padding-top: 6px; }
+        /* 🚀 极致专业的固定色页眉页脚 */
+        .page-header { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 6px; font-size: 10px; color: #64748b; font-weight: bold; }
+        .page-footer { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
         .page-footer span { flex: 1; } .page-footer .f-left { text-align: left; } .page-footer .f-center { text-align: center; font-family: Arial, sans-serif; font-weight: bold; } .page-footer .f-right { text-align: right; }
 
         @media screen { 
@@ -140,7 +133,6 @@ async def generate_html(req: FormatRequest):
             .eraser-mode * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"/><line x1="18" y1="13" x2="11" y2="20"/></svg>') 0 20, crosshair !important; }
         }
 
-        /* 🚀 现代悬浮控制面板 (Glassmorphism) */
         .control-panel { 
             width: 320px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             padding: 24px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
@@ -153,7 +145,6 @@ async def generate_html(req: FormatRequest):
         .reset-btn { font-size: 12px; padding: 4px 10px; cursor: pointer; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 20px; color: #64748b; font-weight: 600; transition: all 0.2s; }
         .reset-btn:hover { background: #f1f5f9; color: #0f172a; }
 
-        /* 功能区块卡片化 */
         .tool-card { background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         
         .ctrl-btn { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.3px; }
@@ -165,11 +156,11 @@ async def generate_html(req: FormatRequest):
         .btn-eraser { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
         .btn-inspector { background: #faf5ff; color: #6b21a8; border-color: #e9d5ff; }
         .btn-diff { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; margin-bottom: 0; }
-        .btn-export { background: var(--c-primary, #0f172a); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--c-primary) 40%, transparent); margin-top: 10px; padding: 14px; font-size: 14px;}
+        .btn-export { background: var(--c-primary, #0f172a); color: #fff; box-shadow: 0 6px 16px rgba(15,23,42,0.2); margin-top: 10px; padding: 14px; font-size: 14px;}
 
-        /* 色板样式回归 */
+        /* 🚀 图标化色板样式 */
         .color-row { display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; align-items:center; border-bottom:1px dashed #e2e8f0; padding-bottom:6px; }
-        .color-tool-btn { background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; cursor:pointer; font-size:11px; padding:3px 6px; display: flex; align-items: center; justify-content: center; color: #475569; font-weight: 600; transition: all 0.2s;}
+        .color-tool-btn { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; font-size:11px; padding:4px; width:26px; height:26px; display: flex; align-items: center; justify-content: center; color: #475569; transition: all 0.2s;}
         .color-tool-btn:hover { background:#e2e8f0; color: #0f172a;}
 
         .ctrl-group { margin-bottom: 16px; } 
@@ -181,31 +172,23 @@ async def generate_html(req: FormatRequest):
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--c-primary); cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
 
-        /* 寻色悬浮窗与 Notion级菜单 */
-        #inspector-tooltip { 
-            position: fixed; display: none; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); 
-            color: #f8fafc; padding: 14px 18px; border-radius: 12px; font-size: 12px; z-index: 99999; 
-            pointer-events: none; line-height: 1.6; box-shadow: 0 10px 25px rgba(0,0,0,0.25); 
-            max-width: 320px; word-break: break-all; border: 1px solid rgba(255,255,255,0.15); 
-        }
+        #inspector-tooltip { position: fixed; display: none; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); color: #f8fafc; padding: 14px 18px; border-radius: 12px; font-size: 12px; z-index: 99999; pointer-events: none; line-height: 1.6; box-shadow: 0 10px 25px rgba(0,0,0,0.25); max-width: 320px; word-break: break-all; border: 1px solid rgba(255,255,255,0.15); }
         
-        #notion-hover-menu {
-            position: fixed; display: none; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
-            padding: 6px 12px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 10000;
-            gap: 12px; align-items: center; transition: opacity 0.2s; border: 1px solid rgba(255,255,255,0.15);
-        }
+        #notion-hover-menu { position: fixed; display: none; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 10000; gap: 12px; align-items: center; transition: opacity 0.2s; border: 1px solid rgba(255,255,255,0.15); }
         .hover-color-group { display: flex; gap: 6px; align-items: center; }
         .hover-color-btn { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); transition: transform 0.1s; }
         .hover-color-btn:hover { transform: scale(1.2); }
         .hover-label { color: #cbd5e1; font-size: 12px; font-weight: bold; margin-right: 4px; cursor: default;}
         .hover-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.2); }
 
-        /* Diff 侧边栏优化 */
+        /* 🚀 Diff 侧边栏与互动修复按钮 */
         #diff-sidebar { position: fixed; right: -450px; top: 0; width: 400px; height: 100vh; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 9999; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; font-family: sans-serif; }
         #diff-sidebar.active { right: 0; }
         .diff-header { padding: 24px; border-bottom: 1px solid #eff6ff; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #eff6ff, #ffffff); color: #1e3a8a; font-weight: 800; font-size: 16px; }
         .diff-content { flex: 1; overflow-y: auto; padding: 24px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; color: #334155; }
-        .diff-missing { background-color: #fee2e2; color: #b91c1c; font-weight: 800; padding: 2px 4px; border-radius: 4px; cursor: text; border-bottom: 2px solid #ef4444; }
+        .diff-missing { background-color: #fee2e2; color: #b91c1c; font-weight: 800; padding: 2px 4px; border-radius: 4px; cursor: pointer; border-bottom: 2px solid #ef4444; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; }
+        .diff-missing:hover { background-color: #fecaca; }
+        .copy-badge { font-size: 11px; font-weight: normal; background: rgba(255,255,255,0.6); padding: 1px 4px; border-radius: 4px; color: #7f1d1d; }
         .diff-equal { color: #94a3b8; }
 
         @media print {
@@ -277,7 +260,7 @@ async def generate_html(req: FormatRequest):
             <button onclick="toggleDiffSidebar()" style="border:none; background:rgba(255,255,255,0.5); cursor:pointer; font-size:14px; color:#1e3a8a; font-weight:bold; padding: 4px 10px; border-radius: 20px;">关闭</button>
         </div>
         <div style="padding:15px 24px; background:#eff6ff; font-size:12px; color:#1e293b; border-bottom:1px solid #bfdbfe;">
-            * <strong style="color:#b91c1c;">红底粗字</strong> 为大模型排版时漏掉的内容。请使用 [🪄 格式刷] 或悬浮菜单补齐。
+            * 点击下方 <strong style="color:#b91c1c;">红底色块</strong> 即可将漏掉的词「一键复制」，随后在左侧 A4 纸对应位置 `Ctrl+V` 粘贴补回。
         </div>
         <div class="diff-content" id="diff-content-area">正在为您极速比对，请稍候...</div>
     </div>
@@ -301,18 +284,17 @@ async def generate_html(req: FormatRequest):
         
         function initLayoutControls() { ['f-size-base', 'f-size-title', 'line-height', 'letter-spacing', 'radius-card'].forEach(id => { const el = document.getElementById('sl-' + id); const valSpan = document.getElementById('val-' + id); if(el) { let saved = safeGetStorage('--' + id); if(saved) { let numOnly = saved.replace(/[^0-9.-]/g, ''); el.value = numOnly; if(valSpan) valSpan.innerText = numOnly + (id.includes('line') ? '' : 'px'); rootStyle.setProperty('--' + id, saved); } el.addEventListener('input', (e) => { let val = e.target.value; let suffix = id.includes('line') ? '' : 'px'; if(valSpan) valSpan.innerText = val + suffix; rootStyle.setProperty('--' + id, val + suffix); safeSetStorage('--' + id, val + suffix); }); } }); const fontSel = document.getElementById('sel-font'); if(fontSel) { let savedFont = safeGetStorage('--f-family'); if(savedFont) { fontSel.value = savedFont; rootStyle.setProperty('--f-family', savedFont); } fontSel.addEventListener('change', (e) => { rootStyle.setProperty('--f-family', e.target.value); safeSetStorage('--f-family', e.target.value); }); } }
 
-        // 🎨 找回的：智能色板生成与局部高亮函数
+        // 🎨 智能色板与高级图标
         window.applyToText = function(varName, command) { const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); if (color) document.execCommand(command, false, color); };
         let globalExtractedVars = [];
         
-        // 🚨 刷新色板UI（终极防引号报错版）
         function initDynamicColorPanel() { 
             const baseContainer = document.getElementById('panel-base-colors'); 
             const compContainer = document.getElementById('panel-comp-colors'); 
             if(!baseContainer || !compContainer) return; 
             
             const styleText = document.getElementById('style-data').textContent; 
-            let varsMatch = styleText.match(/--[a-zA-Z0-9-]+/g) || []; 
+            let varsMatch = styleText.match(/--c-[a-zA-Z0-9-]+/g) || []; 
             globalExtractedVars = [...new Set(varsMatch)]; 
             if(globalExtractedVars.length === 0) globalExtractedVars = ['--c-primary', '--c-star', '--c-highlight']; 
             
@@ -330,20 +312,20 @@ async def generate_html(req: FormatRequest):
                     
                     let wrapper = document.createElement('div'); 
                     wrapper.className = 'color-row'; 
-                    // 👇 魔法在此：使用反引号 (`) 彻底解决 Python-JS 引号转义冲突
+                    // 🚀 升级为高级图标
                     wrapper.innerHTML = `
                         <span style="color:#475569; flex-grow:1; font-weight:600; font-size:12px;" title="${v}">${cleanName}</span>
                         <div style="display:flex; align-items:center; gap:4px;">
                             <input type="color" value="${currentVal}" class="dyn-color-picker" data-var="${v}" style="width:24px;height:24px;padding:0;border:none;cursor:pointer; border-radius:6px; background:transparent;">
-                            <button class="color-tool-btn" title="给选中的字上色" onclick="applyToText('${v}', 'foreColor')">[字]</button>
-                            <button class="color-tool-btn" title="给选中的字加高亮背景" onclick="applyToText('${v}', 'backColor')">[底]</button>
+                            <button class="color-tool-btn" title="修改文字颜色" onclick="applyToText('${v}', 'foreColor')"><span style="font-family: Georgia, serif; font-weight: bold; font-size: 14px; line-height: 1;">A</span></button>
+                            <button class="color-tool-btn" title="修改高亮底色" onclick="applyToText('${v}', 'backColor')"><div style="width: 13px; height: 13px; background: currentColor; border-radius: 2px;"></div></button>
                         </div>
                     `;
                     
                     wrapper.querySelector('input').addEventListener('input', (e) => { 
                         rootStyle.setProperty(v, e.target.value); 
                         safeSetStorage(v, e.target.value);
-                        buildHoverToolbar(); // 同步刷新悬浮菜单
+                        buildHoverToolbar(); 
                     }); 
                     targetContainer.appendChild(wrapper); 
                 } 
@@ -352,8 +334,7 @@ async def generate_html(req: FormatRequest):
             if(baseContainer.children.length === 0) document.getElementById('group-base-colors').style.display = 'none';
             if(typeof buildHoverToolbar === 'function') buildHoverToolbar(); 
         }
-        
-        // 🎨 真正的实体化数学混色逻辑
+
         document.getElementById('color-image-upload').addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
             const img = new Image(); const reader = new FileReader();
@@ -367,7 +348,6 @@ async def generate_html(req: FormatRequest):
                     const getLum = (rgb) => 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2];
                     const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
                     
-                    // ✨ 数学混合公式
                     const mixWithWhite = (rgb, percent) => {
                         const w = 255; const p = percent / 100;
                         return rgbToHex(rgb[0]*p + w*(1-p), rgb[1]*p + w*(1-p), rgb[2]*p + w*(1-p));
@@ -384,7 +364,6 @@ async def generate_html(req: FormatRequest):
                     rootStyle.setProperty('--c-star', starHex); safeSetStorage('--c-star', starHex);
                     rootStyle.setProperty('--c-highlight', highlightHex); safeSetStorage('--c-highlight', highlightHex);
                     
-                    // 实体化写入
                     const realSecondaryHex = mixWithWhite(dominantRGB, 10);
                     const realCaseBgHex = mixWithWhite(dominantRGB, 4);
                     rootStyle.setProperty('--c-secondary', realSecondaryHex); safeSetStorage('--c-secondary', realSecondaryHex);
@@ -395,7 +374,7 @@ async def generate_html(req: FormatRequest):
                     const display = document.getElementById('extracted-colors-display');
                     display.innerHTML = `<div style="flex:1; background:${starHex};" title="标题深色"></div><div style="flex:1; background:${primaryHex};" title="主色"></div><div style="flex:1; background:${highlightHex};" title="强调色"></div>`;
                     
-                    initDynamicColorPanel(); // 🚨 重建颜色控制台！
+                    initDynamicColorPanel();
                     alert('🎉 魔法换色成功！所有色板已独立生成，悬浮菜单已同步更新！');
                 } catch (err) { alert('提取颜色失败，请换一张色彩更丰富的图片重试！'); }
             }; reader.readAsDataURL(file);
@@ -418,22 +397,19 @@ async def generate_html(req: FormatRequest):
             toolbar.innerHTML = '';
             
             let textGrp = document.createElement('div'); textGrp.className = 'hover-color-group';
-            textGrp.innerHTML = '<span class="hover-label">A</span>';
+            textGrp.innerHTML = '<span class="hover-label" style="font-family:serif;">A</span>';
             let bgGrp = document.createElement('div'); bgGrp.className = 'hover-color-group';
-            bgGrp.innerHTML = '<span class="hover-label" style="background:#475569;color:#fff;padding:0 4px;border-radius:2px;">A</span>';
+            bgGrp.innerHTML = '<span class="hover-label" style="background:#475569;color:#fff;padding:0 4px;border-radius:2px;font-family:serif;">A</span>';
             
-            // 挑选最高频的几个核心色放入悬浮菜单
             const coreVars = ['--c-primary', '--c-star', '--c-highlight', '--c-mod-point', '--c-mod-practice'];
             
             coreVars.forEach(v => {
                 let currentVal = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
                 if(currentVal && currentVal.startsWith('#')) {
-                    // 字色按钮
                     let tb = document.createElement('div'); tb.className = 'hover-color-btn'; tb.style.background = currentVal;
                     tb.title = "字: " + v.replace('--c-','');
                     tb.onclick = () => { applyToText(v, 'foreColor'); };
                     
-                    // 底色按钮
                     let bb = document.createElement('div'); bb.className = 'hover-color-btn'; bb.style.background = currentVal;
                     bb.title = "底: " + v.replace('--c-','');
                     bb.onclick = () => { applyToText(v, 'backColor'); };
@@ -452,7 +428,6 @@ async def generate_html(req: FormatRequest):
             toolbar.appendChild(bgGrp); toolbar.appendChild(divider.cloneNode());
             toolbar.appendChild(clearBtn);
             
-            // 阻止点击面板时失去焦点
             toolbar.addEventListener('mousedown', e => e.preventDefault());
         }
 
@@ -475,7 +450,6 @@ async def generate_html(req: FormatRequest):
             }
         });
         
-        // 点击其他地方隐藏悬浮菜单
         document.addEventListener('mousedown', function(e) {
             const toolbar = document.getElementById('notion-hover-menu');
             if (toolbar && !toolbar.contains(e.target) && e.target.id !== 'notion-hover-menu') {
@@ -599,7 +573,7 @@ async def generate_html(req: FormatRequest):
             }
         }
 
-        // Eraser
+        // 🚀 升级版橡皮擦 (连带清空内联颜色)
         window.toggleEraser = function() {
             if (isFormatPainterActive) toggleFormatPainter();
             if (isInspectorActive) toggleInspector();
@@ -618,8 +592,19 @@ async def generate_html(req: FormatRequest):
             if (!isEraserActive) return; e.preventDefault(); e.stopPropagation();
             const target = e.target;
             if (target.classList.contains('page-content') || target.classList.contains('a4-page')) return;
-            if (target.tagName === 'DIV' || target.tagName === 'P' || target.tagName.match(/^H[1-6]$/i)) { target.className = 'text-block'; } 
-            else if (target.tagName === 'SPAN') { const text = document.createTextNode(target.innerText); target.parentNode.replaceChild(text, target); }
+            
+            if (target.tagName === 'DIV' || target.tagName === 'P' || target.tagName.match(/^H[1-6]$/i)) { 
+                target.className = 'text-block'; 
+                target.style.color = ''; target.style.backgroundColor = '';
+            } 
+            else if (target.tagName === 'SPAN') { 
+                // 如果只是带有颜色的 span，抹去颜色
+                if (target.style.color || target.style.backgroundColor) {
+                    target.style.color = ''; target.style.backgroundColor = '';
+                } else {
+                    const text = document.createTextNode(target.innerText); target.parentNode.replaceChild(text, target); 
+                }
+            }
         }
 
         document.addEventListener('keydown', function(e) { 
@@ -631,8 +616,17 @@ async def generate_html(req: FormatRequest):
         });
 
         // ==========================================
-        // 👀 Diff 引擎
+        // 🚀 互动版 Diff 引擎 (一键复制)
         // ==========================================
+        window.copyMissingText = function(text, el) {
+            navigator.clipboard.writeText(text).then(() => {
+                let oldHtml = el.innerHTML;
+                el.innerHTML = '✅ 已复制！请在左侧 Ctrl+V 粘贴';
+                el.style.background = '#bbf7d0'; el.style.color = '#166534';
+                setTimeout(() => { el.innerHTML = oldHtml; el.style.background = ''; el.style.color = ''; }, 2000);
+            });
+        };
+
         let isDiffOpen = false;
         window.toggleDiffSidebar = function() {
             const sidebar = document.getElementById('diff-sidebar'); const container = document.getElementById('main-a4-container');
@@ -665,7 +659,8 @@ async def generate_html(req: FormatRequest):
                         if (type === -1) {
                             if (text.trim().length > 0) {
                                 missingCount++;
-                                html += '<span class="diff-missing" title="这是大模型排版时漏掉的词，请在左边纸上补回来">' + text + '</span>';
+                                let safeText = text.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\\n/g, '\\\\n');
+                                html += `<span class="diff-missing" title="点击一键复制" onclick="copyMissingText('${safeText}', this)">${text} <span class="copy-badge">📋复制</span></span>`;
                             } else { html += text; }
                         } else if (type === 0) { html += '<span class="diff-equal">' + text + '</span>'; }
                     }
