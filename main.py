@@ -2,20 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Any, Optional
 import json
-
-app = FastAPI()
-
-
-# 1. 定义前台接待员：告诉扣子我们要接收哪些参数（完美对应你扣子里的变量名）
-class FormatRequest(BaseModel):
-    pure_content: Optional[str] = ""
-    category: Optional[str] = "内部教辅资料"
-    title_info: Optional[str] = "教辅排版引擎"
-    theme_colors: Optional[str] = ""
-    zjmk_ty: Optional[str] = ""
-    zjmk_zs: Optional[str] = ""
-    original_text: Optional[Any] = []  # 接收那个复杂的数组对象
-
+import re  # 🚨 新增这一行，用于正则清洗
 
 # 2. 开通对外服务的接口地址
 @app.post("/generate_html")
@@ -28,10 +15,28 @@ async def generate_html(req: FormatRequest):
     clean_zjmk_ty = req.zjmk_ty.strip()
     clean_zjmk_zs = req.zjmk_zs.strip()
 
-    # 🎯 照抄你成功的 Array Object 拆包逻辑！
     original_raw = req.original_text
+
+    # 🚨 终极解包逻辑：应对 Coze 的各种字符串花样
+    if isinstance(original_raw, str):
+        try:
+            # 第一层：尝试标准的 JSON 解析
+            original_raw = json.loads(original_raw)
+        except Exception:
+            pass
+
+    # 如果解开一层之后发现里面居然还是一个字符串（嵌套转义的情况）
+    if isinstance(original_raw, str):
+        try:
+            # 第二层：针对极其顽固的二次转义 JSON 进行清理和再解析
+            cleaned_str = original_raw.replace('\\n', '\n').replace('\\"', '"')
+            original_raw = json.loads(cleaned_str)
+        except Exception:
+            pass
+
     extracted_text = ""
 
+    # 🎯 照抄你成功的 Array Object 拆包逻辑！
     if isinstance(original_raw, list):
         for item in original_raw:
             if isinstance(item, dict) and item.get("data"):
@@ -43,7 +48,23 @@ async def generate_html(req: FormatRequest):
     else:
         extracted_text = str(original_raw)
 
+    # =======================================================
+    # 🚨 新增：Markdown 符号大清洗（对齐大模型的输出）
+    # =======================================================
+    if extracted_text:
+        # 1. 剔除行首的标题符号 (如 ### , #### )
+        extracted_text = re.sub(r'(?m)^#+\s*', '', extracted_text)
+        # 2. 剔除加粗和斜体符号 (如 **文字** 变成 文字)
+        extracted_text = re.sub(r'\*+', '', extracted_text)
+        # 3. 剔除无序列表符号 (如 - 或 + 开头)
+        extracted_text = re.sub(r'(?m)^[-+]\s+', '', extracted_text)
+        # 4. 剔除引用符号 (如 > )
+        extracted_text = re.sub(r'(?m)^>\s*', '', extracted_text)
+    # =======================================================
+
     final_style_content = clean_zjmk_ty + "\n\n" + clean_zjmk_zs
+
+    # ... 后续的 safe_original_json, html_template 和 replace 逻辑保持不变 ...
 
     # 安全序列化，防网页 JS 崩溃
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
