@@ -6,6 +6,7 @@ import re
 
 app = FastAPI()
 
+# 1. 定义前台接待员：告诉扣子我们要接收哪些参数
 class FormatRequest(BaseModel):
     pure_content: Optional[str] = ""
     category: Optional[str] = "内部教辅资料"
@@ -13,56 +14,44 @@ class FormatRequest(BaseModel):
     theme_colors: Optional[str] = ""
     zjmk_ty: Optional[str] = ""
     zjmk_zs: Optional[str] = ""
-    original_text: Optional[Any] = []
+    original_text: Optional[Any] = []  # 接收那个复杂的数组对象
 
+# 2. 开通对外服务的接口地址
 @app.post("/generate_html")
 async def generate_html(req: FormatRequest):
-    # 1. 安全获取基础参数
-    doc_category = req.category or "内部教辅资料"
-    doc_title = req.title_info or "教辅排版引擎"
-    theme_colors = req.theme_colors or ""
-    clean_zjmk_ty = (req.zjmk_ty or "").strip()
-    clean_zjmk_zs = (req.zjmk_zs or "").strip()
-
-    # =======================================================
-    # 🛡️ 第一战区：处理 pure_content（防 Coze 变态打包）
-    # =======================================================
+    # 提取常规的字符串参数
     content_area = req.pure_content
-
-    if isinstance(content_area, str) and content_area.strip():
-        # 尝试解包：如果是一整个 JSON 字典被打包成了字符串
+    
+    # =======================================================
+    # 🚨 终极防护：应对 Coze 对 pure_content 的错误打包和转义
+    # =======================================================
+    if isinstance(content_area, str):
+        # 1. 尝试解包（如果 Coze 把整个字典连带 debug_chunk_count 一起传过来了）
         try:
             parsed = json.loads(content_area)
             if isinstance(parsed, dict) and "pure_content" in parsed:
                 content_area = parsed["pure_content"]
-            elif isinstance(parsed, dict) and "htmlCode" in parsed: # 预防传错字段
-                 content_area = parsed["htmlCode"]
         except Exception:
             pass
-
-        content_str = str(content_area)
         
-        # 暴力洗澡：不管有多少层反斜杠转义的引号，全洗掉
-        content_str = re.sub(r'\\+"', '"', content_str)
-        # 把被转义的换行符还原（不要直接删掉，可能会让标签连在一起）
-        content_str = content_str.replace('\\n', '\n')
-
-        # 终极物理开膛手（性能优化版）：寻找第一个 < 到 最后一个 > 之间的所有内容
-        # 使用贪婪匹配，忽略首尾可能因为强制转换 JSON 带来的 {" 或 "} 等垃圾字符
-        match = re.search(r'(<[\s\S]+>)', content_str)
-        if match:
-            content_area = match.group(1)
-        else:
-             content_area = content_str # 如果连标签都找不到，原样兜底
-
-    else:
-        content_area = str(content_area) # 极度异常情况兜底
-
+        # 2. 暴力解除转义：让 class=\"xxx\" 完美还原成 class="xxx"
+        content_area = str(content_area).replace('\\"', '"').replace('\\n', '')
+        
+        # 3. 终极过滤：如果它依然是一个带有 {" 前缀的残留废料
+        if content_area.startswith('{"<'):
+            content_area = re.sub(r'^\{"', '', content_area)
+            content_area = re.sub(r'",\s*"debug_chunk_count".*?\}$', '', content_area, flags=re.DOTALL)
     # =======================================================
-    # 🛡️ 第二战区：处理 original_text（防嵌套解析死锁）
-    # =======================================================
+
+    doc_category = req.category
+    doc_title = req.title_info
+    theme_colors = req.theme_colors
+    clean_zjmk_ty = req.zjmk_ty.strip()
+    clean_zjmk_zs = req.zjmk_zs.strip()
+
     original_raw = req.original_text
 
+    # 🚨 终极解包逻辑：应对 Coze 的各种字符串花样
     if isinstance(original_raw, str):
         try:
             original_raw = json.loads(original_raw)
@@ -78,6 +67,7 @@ async def generate_html(req: FormatRequest):
 
     extracted_text = ""
 
+    # 🎯 Array Object 拆包逻辑
     if isinstance(original_raw, list):
         for item in original_raw:
             if isinstance(item, dict) and item.get("data"):
@@ -90,24 +80,23 @@ async def generate_html(req: FormatRequest):
         extracted_text = str(original_raw)
 
     # =======================================================
-    # 🛡️ 第三战区：Markdown 符号大清洗（防 Diff 误报）
+    # 🚨 Markdown 符号大清洗（防漏字比对误报）
     # =======================================================
     if extracted_text:
         extracted_text = re.sub(r'(?m)^#+\s*', '', extracted_text)
         extracted_text = re.sub(r'\*+', '', extracted_text)
         extracted_text = re.sub(r'(?m)^[-+]\s+', '', extracted_text)
         extracted_text = re.sub(r'(?m)^>\s*', '', extracted_text)
+        # 剔除原文中的连续下划线占位符，对齐 HTML 中的空 span 容器
+        extracted_text = re.sub(r'[_＿]{2,}', '', extracted_text)
+    # =======================================================
 
-    # =======================================================
-    # 🛡️ 第四战区：组装与安全输出
-    # =======================================================
     final_style_content = clean_zjmk_ty + "\n\n" + clean_zjmk_zs
 
     # 安全序列化，防网页 JS 崩溃
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
-    # 满血版 HTML 模板
-    # 满血版与高级 UI 版 HTML 模板
+    # 满血版与高级 UI 版 HTML 模板 (已加回寻色模式)
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -173,6 +162,7 @@ async def generate_html(req: FormatRequest):
         .btn-color { background: #fefce8; color: #a16207; border-color: #fef08a; }
         .btn-brush { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
         .btn-eraser { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+        .btn-inspector { background: #faf5ff; color: #6b21a8; border-color: #e9d5ff; }
         .btn-diff { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; margin-bottom: 0; }
         .btn-export { background: var(--c-primary, #0f172a); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--c-primary) 40%, transparent); margin-top: 10px; padding: 14px; font-size: 14px;}
 
@@ -184,6 +174,14 @@ async def generate_html(req: FormatRequest):
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--c-primary); cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
+
+        /* 寻色悬浮窗高级样式 */
+        #inspector-tooltip { 
+            position: fixed; display: none; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); 
+            color: #f8fafc; padding: 14px 18px; border-radius: 12px; font-size: 12px; z-index: 99999; 
+            pointer-events: none; line-height: 1.6; box-shadow: 0 10px 25px rgba(0,0,0,0.25); 
+            max-width: 320px; word-break: break-all; border: 1px solid rgba(255,255,255,0.15); 
+        }
 
         /* Diff 侧边栏优化 */
         #diff-sidebar { position: fixed; right: -450px; top: 0; width: 400px; height: 100vh; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 9999; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; font-family: sans-serif; }
@@ -221,9 +219,10 @@ async def generate_html(req: FormatRequest):
             </button>
             <div id="extracted-colors-display" style="display:flex; gap:4px; height: 12px; border-radius: 12px; overflow: hidden; margin-bottom: 12px;"></div>
 
-            <div style="display: flex; gap: 8px;">
-                <button class="ctrl-btn btn-brush" id="btn-format-painter" onclick="toggleFormatPainter()" style="flex: 1;">🪄 格式刷</button>
-                <button class="ctrl-btn btn-eraser" id="btn-eraser" onclick="toggleEraser()" style="flex: 1;">🧹 橡皮擦</button>
+            <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+                <button class="ctrl-btn btn-brush" id="btn-format-painter" onclick="toggleFormatPainter()" style="flex: 1; padding: 10px 2px; font-size: 12px; margin: 0;">🪄 格式刷</button>
+                <button class="ctrl-btn btn-eraser" id="btn-eraser" onclick="toggleEraser()" style="flex: 1; padding: 10px 2px; font-size: 12px; margin: 0;">🧹 橡皮擦</button>
+                <button class="ctrl-btn btn-inspector" id="btn-inspector" onclick="toggleInspector()" style="flex: 1; padding: 10px 2px; font-size: 12px; margin: 0;">🔍 寻色器</button>
             </div>
 
             <button class="ctrl-btn btn-diff" onclick="toggleDiffSidebar()">👀 原文防漏字核对</button>
@@ -314,34 +313,42 @@ async def generate_html(req: FormatRequest):
                     rootStyle.setProperty('--c-highlight', highlightHex); safeSetStorage('--c-highlight', highlightHex);
                     
                     // 🌟 魔法步骤：背景色/辅色全部通过 CSS color-mix 自动由主色推算！(混入90%及95%的白色)
-                    // 注意：这需要在用户的样式表里支持 color-mix，绝大多数现代浏览器已支持。
                     const autoSecondary = `color-mix(in srgb, ${primaryHex} 10%, white)`;
                     const autoBg = `color-mix(in srgb, ${primaryHex} 4%, white)`;
                     rootStyle.setProperty('--c-secondary', autoSecondary); safeSetStorage('--c-secondary', autoSecondary);
                     rootStyle.setProperty('--c-case-bg', autoBg); safeSetStorage('--c-case-bg', autoBg);
-                    // 全局大背景微调
+                    
                     document.body.style.backgroundColor = `color-mix(in srgb, ${primaryHex} 2%, #F8FAFC)`;
 
-                    // UI 展示
                     const display = document.getElementById('extracted-colors-display');
                     display.innerHTML = `<div style="flex:1; background:${starHex};" title="标题深色"></div><div style="flex:1; background:${primaryHex};" title="主色"></div><div style="flex:1; background:${highlightHex};" title="强调色"></div>`;
                     
-                    alert('🎉 魔法换色成功！基于您的色卡，系统已自动推算出标题色、主色、强调色，并生成了绝佳的配套浅色背景！');
-                } catch (err) { alert('提取颜色失败，请换一张色彩更分明的图片重试！'); }
+                    alert('🎉 魔法换色成功！系统已自动提取核心色彩，并推算出了最舒适的浅色背景层！');
+                } catch (err) { alert('提取颜色失败，请换一张色彩更丰富的图片重试！'); }
             }; reader.readAsDataURL(file);
         });
 
+        // ==========================================
+        // 工具栏状态管理：互斥锁
+        // ==========================================
         let isFormatPainterActive = false; let pickedClass = null;
         let isEraserActive = false;
+        let isInspectorActive = false;
 
-        // 🪄 格式刷逻辑
+        // 🪄 1. 格式刷逻辑
         window.toggleFormatPainter = function() {
-            if (isEraserActive) toggleEraser(); // 互斥
+            if (isEraserActive) toggleEraser(); 
+            if (isInspectorActive) toggleInspector();
+            
             const btn = document.getElementById('btn-format-painter'); const container = document.getElementById('main-a4-container');
             if (!isFormatPainterActive) {
-                isFormatPainterActive = true; pickedClass = null; btn.innerText = '请点击吸取样式...'; btn.style.background = '#fef08a'; btn.style.borderColor = '#facc15'; btn.style.color = '#854d0e'; container.style.cursor = 'crosshair'; container.addEventListener('click', handleFormatPainterClick, true);
+                isFormatPainterActive = true; pickedClass = null; 
+                btn.innerText = '请点击吸取...'; btn.style.background = '#fef08a'; btn.style.borderColor = '#facc15'; btn.style.color = '#854d0e'; 
+                container.style.cursor = 'crosshair'; container.addEventListener('click', handleFormatPainterClick, true);
             } else {
-                isFormatPainterActive = false; pickedClass = null; btn.innerText = '🪄 格式刷'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; container.style.cursor = 'auto'; container.removeEventListener('click', handleFormatPainterClick, true);
+                isFormatPainterActive = false; pickedClass = null; 
+                btn.innerText = '🪄 格式刷'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; 
+                container.style.cursor = 'auto'; container.removeEventListener('click', handleFormatPainterClick, true);
             }
         }
         function handleFormatPainterClick(e) {
@@ -349,7 +356,7 @@ async def generate_html(req: FormatRequest):
             const target = e.target; const btn = document.getElementById('btn-format-painter');
             if (!pickedClass) {
                 if (target.classList.length > 0 && !target.classList.contains('a4-page') && !target.classList.contains('page-content')) {
-                    pickedClass = target.className; btn.innerText = '✅ 已吸取，点击涂刷 (Esc退出)'; btn.style.background = '#bbf7d0'; btn.style.color = '#166534';
+                    pickedClass = target.className; btn.innerText = '✅ 涂抹(Esc退出)'; btn.style.background = '#bbf7d0'; btn.style.color = '#166534';
                 } else { alert('请点击特定组件(如标题、特殊词)进行吸取。'); } return;
             }
             if (pickedClass) {
@@ -367,14 +374,20 @@ async def generate_html(req: FormatRequest):
             }
         }
 
-        // 🧹 橡皮擦逻辑
+        // 🧹 2. 橡皮擦逻辑
         window.toggleEraser = function() {
-            if (isFormatPainterActive) toggleFormatPainter(); // 互斥
+            if (isFormatPainterActive) toggleFormatPainter();
+            if (isInspectorActive) toggleInspector();
+            
             const btn = document.getElementById('btn-eraser'); const container = document.getElementById('main-a4-container');
             if (!isEraserActive) {
-                isEraserActive = true; btn.innerText = '点击文字清除样式 (Esc退出)'; btn.style.background = '#fca5a5'; btn.style.borderColor = '#f87171'; btn.style.color = '#7f1d1d'; container.classList.add('eraser-mode'); container.addEventListener('click', handleEraserClick, true);
+                isEraserActive = true; 
+                btn.innerText = '擦除中(Esc)'; btn.style.background = '#fca5a5'; btn.style.borderColor = '#f87171'; btn.style.color = '#7f1d1d'; 
+                container.classList.add('eraser-mode'); container.addEventListener('click', handleEraserClick, true);
             } else {
-                isEraserActive = false; btn.innerText = '🧹 橡皮擦'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; container.classList.remove('eraser-mode'); container.removeEventListener('click', handleEraserClick, true);
+                isEraserActive = false; 
+                btn.innerText = '🧹 橡皮擦'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; 
+                container.classList.remove('eraser-mode'); container.removeEventListener('click', handleEraserClick, true);
             }
         }
         function handleEraserClick(e) {
@@ -393,14 +406,72 @@ async def generate_html(req: FormatRequest):
             }
         }
 
+        // 🔍 3. 寻色器逻辑 (Inspector Mode)
+        window.toggleInspector = function() {
+            if (isFormatPainterActive) toggleFormatPainter();
+            if (isEraserActive) toggleEraser();
+            
+            const btn = document.getElementById('btn-inspector'); const container = document.getElementById('main-a4-container');
+            if (!isInspectorActive) {
+                isInspectorActive = true; 
+                btn.innerText = '探测中(Esc)'; btn.style.background = '#e9d5ff'; btn.style.borderColor = '#d8b4fe'; btn.style.color = '#581c87'; 
+                container.style.cursor = 'help'; 
+                container.addEventListener('mousemove', handleInspectorMove, true);
+                container.addEventListener('mouseleave', hideInspector, true);
+            } else {
+                isInspectorActive = false; 
+                btn.innerText = '🔍 寻色器'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; 
+                container.style.cursor = 'auto'; 
+                container.removeEventListener('mousemove', handleInspectorMove, true);
+                container.removeEventListener('mouseleave', hideInspector, true);
+                hideInspector();
+            }
+        }
+        function handleInspectorMove(e) {
+            if (!isInspectorActive) return;
+            const target = e.target;
+            if (target.classList.contains('a4-container') || target.classList.contains('a4-page') || target.classList.contains('page-content')) {
+                hideInspector(); return;
+            }
+            const tooltip = document.getElementById('inspector-tooltip');
+            tooltip.style.display = 'block';
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY + 15) + 'px';
+            
+            let classList = Array.from(target.classList).join(', ') || '基础正文文本';
+            let color = window.getComputedStyle(target).color;
+            let bgColor = window.getComputedStyle(target).backgroundColor;
+            
+            tooltip.innerHTML = `
+                <div style="margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px;">
+                    <span style="color:#93c5fd; font-weight:bold;">标签:</span> &lt;${target.tagName.toLowerCase()}&gt;<br>
+                    <span style="color:#93c5fd; font-weight:bold;">类名:</span> ${classList}
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="color:#a7f3d0; font-weight:bold;">文字色:</span> 
+                    <span style="display:inline-block;width:14px;height:14px;background:${color};border:1px solid rgba(255,255,255,0.3);border-radius:3px;"></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                    <span style="color:#a7f3d0; font-weight:bold;">背景色:</span> 
+                    <span style="display:inline-block;width:14px;height:14px;background:${bgColor};border:1px solid rgba(255,255,255,0.3);border-radius:3px;"></span>
+                </div>
+            `;
+        }
+        function hideInspector() {
+            const tooltip = document.getElementById('inspector-tooltip');
+            if(tooltip) tooltip.style.display = 'none';
+        }
+
+        // 统一处理 Esc 键退出工具模式
         document.addEventListener('keydown', function(e) { 
             if (e.key === 'Escape') {
                 if (isFormatPainterActive) toggleFormatPainter(); 
                 if (isEraserActive) toggleEraser();
+                if (isInspectorActive) toggleInspector();
             }
         });
 
-        // 👀 Diff 侧边栏
+        // 👀 Diff 侧边栏逻辑
         let isDiffOpen = false;
         window.toggleDiffSidebar = function() {
             const sidebar = document.getElementById('diff-sidebar'); const container = document.getElementById('main-a4-container');
@@ -458,6 +529,7 @@ async def generate_html(req: FormatRequest):
     </script>
 </body>
 </html>"""
+
     final_html = (
         html_template.replace('__DOC_TITLE__', str(doc_title))
         .replace('__DOC_CATEGORY__', str(doc_category))
