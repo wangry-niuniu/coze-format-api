@@ -2,7 +2,19 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Any, Optional
 import json
-import re  # 🚨 新增这一行，用于正则清洗
+import re
+
+app = FastAPI()
+
+# 1. 定义前台接待员：告诉扣子我们要接收哪些参数
+class FormatRequest(BaseModel):
+    pure_content: Optional[str] = ""
+    category: Optional[str] = "内部教辅资料"
+    title_info: Optional[str] = "教辅排版引擎"
+    theme_colors: Optional[str] = ""
+    zjmk_ty: Optional[str] = ""
+    zjmk_zs: Optional[str] = ""
+    original_text: Optional[Any] = []  # 接收那个复杂的数组对象
 
 # 2. 开通对外服务的接口地址
 @app.post("/generate_html")
@@ -63,8 +75,6 @@ async def generate_html(req: FormatRequest):
     # =======================================================
 
     final_style_content = clean_zjmk_ty + "\n\n" + clean_zjmk_zs
-
-    # ... 后续的 safe_original_json, html_template 和 replace 逻辑保持不变 ...
 
     # 安全序列化，防网页 JS 崩溃
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
@@ -366,7 +376,6 @@ async def generate_html(req: FormatRequest):
 </body>
 </html>"""
 
-    # 6. 把处理好的 JSON 扔进 HTML 坑位
     final_html = (
         html_template.replace('__DOC_TITLE__', str(doc_title))
         .replace('__DOC_CATEGORY__', str(doc_category))
