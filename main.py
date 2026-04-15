@@ -15,7 +15,6 @@ class FormatRequest(BaseModel):
     zjmk_zs: Optional[str] = ""
     original_text: Optional[Any] = []
 
-# 🚨 已经去掉了 HTMLResponse，回归 Coze 要求的标准 JSON 格式
 @app.post("/generate_html")
 async def generate_html(req: FormatRequest):
     # =======================================================
@@ -71,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成
+    # 🚨 战区三：终极引擎代码生成 (V4.1 终极防弹版)
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -94,11 +93,11 @@ async def generate_html(req: FormatRequest):
         }
         __THEME_COLORS__
 
-        /* 🚨 终极防弹补丁：大标题绝对居中 */
+        /* 🚨 大标题绝对居中 */
         .page-content .title-primary, .page-content h1 { display: block !important; text-align: center !important; width: 100% !important; margin: 30px 0 !important; }
         .page-content .panel-summary { display: block !important; margin: 30px auto 20px !important; }
         
-        /* 🚨 终极神圣三件套：完美两端对齐，且杜绝最后一行散字拉伸 */
+        /* 🚨 两端对齐，杜绝最后一行拉伸 */
         .text-block, .script-line {
             margin-bottom: 8px;
             text-align: justify !important; 
@@ -253,7 +252,7 @@ async def generate_html(req: FormatRequest):
         <div style="padding:15px 24px; background:#f8fafc; font-size:12px; border-bottom:1px solid #e2e8f0; color:#475569;">
             * 点击红色词块即可 <strong style="color:#b91c1c;">一键复制</strong>，随后在左侧粘贴补回。
         </div>
-        <div id="diff-content-area" style="flex:1; overflow-y:auto; padding:24px; font-size:14px; line-height:1.8;"></div>
+        <div id="diff-content-area" style="flex:1; overflow-y:auto; padding:24px; font-size:14px; line-height:1.8; white-space: pre-wrap;"></div>
     </div>
 
     <div id="source-data" style="display:none;">__CONTENT_AREA__</div>
@@ -263,9 +262,10 @@ async def generate_html(req: FormatRequest):
     <script>
         const root = document.documentElement.style;
         const DOC_CAT = '__DOC_CATEGORY__'; const DOC_TIT = '__DOC_TITLE__';
-        let pageCount = 0; let dynH = 850;
+        let pageCount = 0; 
+        let dynH = 850; // 🚨 终极防弹：焊死 A4 高度，绝不允许它测出 0
 
-        function getSafeH() { let t = document.createElement('div'); t.className='a4-page'; t.style.visibility='hidden'; t.style.position='absolute'; document.body.appendChild(t); let r = t.getBoundingClientRect().height; document.body.removeChild(t); return r * 0.78; }
+        function getSafeH() { return 850; } // 废除动态测量，防止因浏览器卡顿导致死循环白纸
         function safeGetStorage(k) { try { return localStorage.getItem(k); } catch(e){ return null;} }
         function safeSetStorage(k,v) { try { localStorage.setItem(k,v); } catch(e){} }
         window.resetSettings = function() { if(confirm('确定清空所有本地配置吗？')) { try{ localStorage.clear(); }catch(e){} location.reload(); } };
@@ -297,11 +297,21 @@ async def generate_html(req: FormatRequest):
             return p;
         }
 
+        // 🚨 核弹级脱壳橡皮擦：暴力撕掉所有隐形乱入的外壳
         window.clearManualStyles = function() {
             if(confirm('🧹 确定要清除所有手动涂抹的颜色、高亮和批注吗？\\n（只会清除手改的样式，不会删除文字。若想彻底还原大模型排版，请点击【还原原文】）')) {
-                document.querySelectorAll('.page-content span').forEach(span => {
-                    span.style.color = ''; span.style.background = ''; span.style.backgroundColor = '';
-                    span.style.textDecoration = ''; span.style.textEmphasis = ''; span.style.webkitTextEmphasis = '';
+                const elements = document.querySelectorAll('.page-content span, .page-content font');
+                elements.forEach(el => {
+                    const isBuiltIn = el.className && typeof el.className === 'string' && el.className.length > 0 && el.className !== 'text-block';
+                    if (!isBuiltIn) {
+                        // 如果是你自己画的（没带系统类名），直接把外壳撕了
+                        const text = document.createTextNode(el.textContent);
+                        el.parentNode.replaceChild(text, el);
+                    } else {
+                        // 如果是系统原本的带颜色的块，就帮它洗个澡，去掉额外加的样式
+                        el.style.color = ''; el.style.background = ''; el.style.backgroundColor = '';
+                        el.style.textDecoration = ''; el.style.textEmphasis = ''; el.style.webkitTextEmphasis = '';
+                    }
                 });
             }
         };
@@ -309,10 +319,10 @@ async def generate_html(req: FormatRequest):
         window.restoreOriginal = function() {
             if(confirm('⏪ 确定要放弃所有手动修改，还原回最初排版状态吗？')) {
                 document.querySelectorAll('.a4-page').forEach(p => p.remove());
-                pageCount = 0; dynH = getSafeH();
+                pageCount = 0; dynH = 850;
                 const src = document.getElementById('source-data');
                 src.innerHTML = window.__ORIGINAL_HTML_BACKUP__;
-                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
+                const nodes = Array.from(src.childNodes).map(n => n.cloneNode(true));
                 runPaginationEngine(nodes);
             }
         };
@@ -402,13 +412,26 @@ async def generate_html(req: FormatRequest):
             renderThemePresets();
         }
 
-        function renderThemePresets() {
+       function renderThemePresets() {
             const container = document.getElementById('theme-presets'); container.innerHTML = '';
             let list = JSON.parse(localStorage.getItem('my_themes') || '[]');
-            list.forEach(theme => {
+            list.forEach((theme, index) => {
                 const b = document.createElement('div'); b.className = 'preset-badge'; b.style.background = theme['--c-primary'];
-                b.title = "点击切换主题";
+                b.title = "左键：切换至此主题\n右键：取消收藏该主题";
+                
+                // 左键：切换主题
                 b.onclick = () => { Object.keys(theme).forEach(k => root.setProperty(k, theme[k])); initDynamicColorPanel(); };
+                
+                // 右键：呼出取消收藏确认框
+                b.oncontextmenu = (e) => {
+                    e.preventDefault(); // 拦截浏览器默认的右键菜单
+                    if(confirm('🗑️ 确定要取消收藏这个主题色彩吗？')) {
+                        list.splice(index, 1); // 从数组中精准剔除
+                        localStorage.setItem('my_themes', JSON.stringify(list)); // 更新本地存储
+                        renderThemePresets(); // 瞬间重新渲染，徽章消失！
+                    }
+                };
+                
                 container.appendChild(b);
             });
         }
@@ -566,16 +589,18 @@ async def generate_html(req: FormatRequest):
             let page = createNewPage(); let content = page.querySelector('.page-content');
             let currentTitleLevel = ""; let previousNode = null;
             nodes.forEach(node => {
-                const isTitleClass = node.className && node.className.includes('title-');
-                if (isTitleClass) { const titleText = node.innerText.trim(); if (titleText === currentTitleLevel) return; currentTitleLevel = titleText; }
+                if (node.nodeType === 1) {
+                    const isTitleClass = node.className && typeof node.className === 'string' && node.className.includes('title-');
+                    if (isTitleClass) { const titleText = node.innerText.trim(); if (titleText === currentTitleLevel) return; currentTitleLevel = titleText; }
+                }
                 content.appendChild(node);
                 if (content.offsetHeight > dynH) {
-                    if (content.children.length > 1) {
+                    if (content.childNodes.length > 1) {
                         content.removeChild(node);
                         let nodeToMoveWith = null;
-                        if (previousNode) {
-                            const isHeading = previousNode.tagName.match(/^H[1-6]$/i);
-                            const isPrevTitleClass = previousNode.className && previousNode.className.includes('title-');
+                        if (previousNode && previousNode.nodeType === 1) {
+                            const isHeading = previousNode.tagName && previousNode.tagName.match(/^H[1-6]$/i);
+                            const isPrevTitleClass = previousNode.className && typeof previousNode.className === 'string' && previousNode.className.includes('title-');
                             if (isHeading || isPrevTitleClass) { nodeToMoveWith = previousNode; content.removeChild(previousNode); }
                         }
                         page = createNewPage(); content = page.querySelector('.page-content');
@@ -583,14 +608,19 @@ async def generate_html(req: FormatRequest):
                         content.appendChild(node);
                     }
                 }
-                if (node.innerText && node.innerText.trim() !== "") previousNode = node;
+                if (node.textContent && node.textContent.trim() !== "") previousNode = node;
             });
         }
 
         window.recalculatePagination = function() { 
             const allContents = document.querySelectorAll('.a4-page .page-content'); if (allContents.length === 0) return; 
-            const allNodes = []; allContents.forEach(content => { Array.from(content.children).forEach(child => allNodes.push(child)); }); 
-            document.querySelectorAll('.a4-page').forEach(page => page.remove()); pageCount = 0; dynH = getSafeH(); runPaginationEngine(allNodes); 
+            const allNodes = []; 
+            // 🚨 终极防漏补丁：捕获所有你敲进去的纯文字节点，绝不遗漏
+            allContents.forEach(content => { Array.from(content.childNodes).forEach(child => allNodes.push(child)); }); 
+            document.querySelectorAll('.a4-page').forEach(page => page.remove()); 
+            pageCount = 0; 
+            dynH = 850; // 🚨 强行焊死！
+            runPaginationEngine(allNodes); 
         };
 
         let isFormatPainterActive = false; let pickedClass = null; let isEraserActive = false; let isInspectorActive = false; let colorVarMap = {};
@@ -674,8 +704,8 @@ async def generate_html(req: FormatRequest):
                 initLayoutControls(); initDynamicColorPanel();
                 const src = document.getElementById('source-data');
                 window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; 
-                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
-                setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);
+                const nodes = Array.from(src.childNodes).map(n => n.cloneNode(true));
+                setTimeout(() => { dynH = 850; runPaginationEngine(nodes); }, 300);
             } catch(e){}
         });
     </script>
@@ -691,5 +721,4 @@ async def generate_html(req: FormatRequest):
         .replace('__ORIGINAL_TEXT__', str(safe_original_json))
     )
 
-    # 🚨 终极返回：标准字典格式
     return {"final_html": final_html}
