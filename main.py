@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse # 🚨 新增：直接返回网页的终极法宝
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Any, Optional
 import json
@@ -16,11 +16,11 @@ class FormatRequest(BaseModel):
     zjmk_zs: Optional[str] = ""
     original_text: Optional[Any] = []
 
-# 🚨 修改：明确告诉平台，老子返回的是纯正的 HTML，别给我转成 JSON！
+# 🚨 明确告诉平台，直接返回纯正的 HTML，彻底抛弃 JSON 解析！
 @app.post("/generate_html", response_class=HTMLResponse)
 async def generate_html(req: FormatRequest):
     # =======================================================
-    # 🚨 战区一：数据清洗与防错 (pure_content)
+    # 🚨 战区一：数据清洗与防错
     # =======================================================
     content_area = req.pure_content
     if isinstance(content_area, str):
@@ -41,7 +41,7 @@ async def generate_html(req: FormatRequest):
     clean_zjmk_zs = (req.zjmk_zs or "").strip()
 
     # =======================================================
-    # 🚨 战区二：比对文本预处理 (original_text)
+    # 🚨 战区二：比对文本预处理
     # =======================================================
     original_raw = req.original_text
     if isinstance(original_raw, str):
@@ -72,7 +72,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (UTF-8 护身符 + 终极对齐修复版)
+    # 🚨 战区三：终极引擎代码生成
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -95,11 +95,11 @@ async def generate_html(req: FormatRequest):
         }
         __THEME_COLORS__
 
-        /* 🚨 终极防弹补丁：大标题绝对居中 */
+        /* 🚨 大标题绝对居中 */
         .page-content .title-primary, .page-content h1 { display: block !important; text-align: center !important; width: 100% !important; margin: 30px 0 !important; }
         .page-content .panel-summary { display: block !important; margin: 30px auto 20px !important; }
         
-        /* 🚨 终极神圣三件套：完美两端对齐，且杜绝最后一行散字拉伸 */
+        /* 🚨 两端对齐，杜绝最后一行拉伸 */
         .text-block, .script-line {
             margin-bottom: 8px;
             text-align: justify !important; 
@@ -535,11 +535,11 @@ async def generate_html(req: FormatRequest):
                     const cleanName = v.replace('--c-','');
                     const row = document.createElement('div'); row.className = 'color-row';
                     row.innerHTML = `
-                        <span style=\"font-size:12px; color:#475569; font-weight:600;\">${cleanName}</span>
-                        <div style=\"display:flex; gap:4px; align-items:center;\">
-                            <input type=\"color\" value=\"${current}\" oninput=\"root.setProperty('${v}', this.value); safeSetStorage('${v}', this.value); buildHoverToolbar();\" style=\"width:24px; height:24px; border:none; background:none; cursor:pointer; padding:0;\">
-                            <button class=\"color-tool-btn\" title=\"文字上色\" onclick=\"applyToText('${v}', 'foreColor')\"><span style=\"font-family:serif; font-weight:bold; font-size:14px;\">A</span></button>
-                            <button class=\"color-tool-btn\" title=\"马克笔半高亮\" onclick=\"applyStyleSpan('${current}', 'marker')\"><div style=\"width:12px; height:12px; background:linear-gradient(transparent 50%, currentColor 50%); border-radius:2px;\"></div></button>
+                        <span style="font-size:12px; color:#475569; font-weight:600;">${cleanName}</span>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <input type="color" value="${current}" oninput="root.setProperty('${v}', this.value); safeSetStorage('${v}', this.value); buildHoverToolbar();" style="width:24px; height:24px; border:none; background:none; cursor:pointer; padding:0;">
+                            <button class="color-tool-btn" title="文字上色" onclick="applyToText('${v}', 'foreColor')"><span style="font-family:serif; font-weight:bold; font-size:14px;">A</span></button>
+                            <button class="color-tool-btn" title="马克笔半高亮" onclick="applyStyleSpan('${current}', 'marker')"><div style="width:12px; height:12px; background:linear-gradient(transparent 50%, currentColor 50%); border-radius:2px;"></div></button>
                         </div>`;
                     if(['primary', 'star', 'highlight', 'accent', 'main'].some(k => v.includes(k))) base.appendChild(row); else comp.appendChild(row);
                 }
@@ -565,7 +565,7 @@ async def generate_html(req: FormatRequest):
 
         function runPaginationEngine(nodes) {
             let page = createNewPage(); let content = page.querySelector('.page-content');
-            let currentTitleLevel = \"\"; let previousNode = null;
+            let currentTitleLevel = ""; let previousNode = null;
             nodes.forEach(node => {
                 const isTitleClass = node.className && node.className.includes('title-');
                 if (isTitleClass) { const titleText = node.innerText.trim(); if (titleText === currentTitleLevel) return; currentTitleLevel = titleText; }
@@ -584,7 +584,7 @@ async def generate_html(req: FormatRequest):
                         content.appendChild(node);
                     }
                 }
-                if (node.innerText && node.innerText.trim() !== \"\") previousNode = node;
+                if (node.innerText && node.innerText.trim() !== "") previousNode = node;
             });
         }
 
@@ -597,7 +597,100 @@ async def generate_html(req: FormatRequest):
         let isFormatPainterActive = false; let pickedClass = null; let isEraserActive = false; let isInspectorActive = false; let colorVarMap = {};
         
         function refreshColorMap() {
-            colorVarMap = {}; const dummy = document.createElement('div'); dummy.style.display = 'none'; document.body.appendChild(dummy);\n            globalExtractedVars.forEach(v => {\n                dummy.style.color = `var(${v})`; let cColor = window.getComputedStyle(dummy).color;\n                if (!colorVarMap[cColor]) colorVarMap[cColor] = []; colorVarMap[cColor].push(v.replace('--c-', ''));\n                dummy.style.backgroundColor = `var(${v})`; let cBg = window.getComputedStyle(dummy).backgroundColor;\n                if (!colorVarMap[cBg]) colorVarMap[cBg] = []; if (!colorVarMap[cBg].includes(v.replace('--c-', ''))) colorVarMap[cBg].push(v.replace('--c-', ''));\n            });\n            document.body.removeChild(dummy);\n        }\n\n        window.toggleInspector = function() {\n            isFormatPainterActive = false; isEraserActive = false; const btn = document.getElementById('btn-inspector'); const container = document.getElementById('main-a4-container');\n            isInspectorActive = !isInspectorActive;\n            if (isInspectorActive) { btn.innerText = '探测中(Esc)'; btn.style.background = '#e9d5ff'; btn.style.color = '#581c87'; container.style.cursor = 'help'; refreshColorMap(); container.addEventListener('mousemove', handleInsp, true); } \n            else { btn.innerText = '🔍 寻色器'; btn.style.background = ''; btn.style.color = ''; container.style.cursor = 'auto'; container.removeEventListener('mousemove', handleInsp, true); document.getElementById('inspector-tooltip').style.display='none'; }\n        }\n        function handleInsp(e) {\n            const t = e.target; if(t.classList.contains('page-content') || t.classList.contains('a4-page')) { document.getElementById('inspector-tooltip').style.display='none'; return; }\n            const tt = document.getElementById('inspector-tooltip'); tt.style.display = 'block'; tt.style.left = (e.clientX+15)+'px'; tt.style.top = (e.clientY+15)+'px';\n            let c = window.getComputedStyle(t).color; let bg = window.getComputedStyle(t).backgroundColor;\n            let cN = colorVarMap[c] ? colorVarMap[c].join(' / ') : '默认'; let bgN = colorVarMap[bg] ? colorVarMap[bg].join(' / ') : (bg === 'rgba(0, 0, 0, 0)' ? '透明' : '默认');\n            tt.innerHTML = `标签: &lt;${t.tagName.toLowerCase()}&gt;<br>类名: ${Array.from(t.classList).join(', ') || '正文'}<br><br>字色: <span style=\"display:inline-block;width:10px;height:10px;background:${c};\"></span> ${cN}<br>背景: <span style=\"display:inline-block;width:10px;height:10px;background:${bg};\"></span> ${bgN}`;\n        }\n\n        window.toggleFormatPainter = function() {\n            isInspectorActive = false; isEraserActive = false; isFormatPainterActive = !isFormatPainterActive; pickedClass = null;\n            const btn = document.getElementById('btn-format-painter'); btn.innerText = isFormatPainterActive ? '点击吸取...' : '🪄 格式刷'; btn.style.background = isFormatPainterActive ? '#fef08a' : ''; btn.style.color = isFormatPainterActive ? '#854d0e' : '';\n        }\n\n        window.toggleEraser = function() {\n            isFormatPainterActive = false; isInspectorActive = false; isEraserActive = !isEraserActive;\n            const btn = document.getElementById('btn-eraser'); btn.innerText = isEraserActive ? '擦除中(Esc)' : '🧹 橡皮擦'; btn.style.background = isEraserActive ? '#fca5a5' : ''; btn.style.color = isEraserActive ? '#7f1d1d' : '';\n        }\n\n        document.addEventListener('click', e => {\n            if(isFormatPainterActive) {\n                e.preventDefault(); e.stopPropagation();\n                if(!pickedClass) { if(e.target.classList.length>0 && !e.target.classList.contains('page-content')) { pickedClass = e.target.className; document.getElementById('btn-format-painter').innerText = '✅ 涂抹中(Esc)'; document.getElementById('btn-format-painter').style.background = '#bbf7d0'; } }\n                else { const isBlock = pickedClass.includes('title') || pickedClass.includes('block'); if(isBlock) { let p = e.target; while(p && p.tagName!=='DIV' && p.tagName!=='P' && !p.classList.contains('page-content')) p=p.parentElement; if(p && !p.classList.contains('page-content')) p.className=pickedClass; else e.target.className=pickedClass; } else { const sel = window.getSelection(); if(!sel.isCollapsed) { const r = sel.getRangeAt(0); const s = document.createElement('span'); s.className=pickedClass; r.surroundContents(s); sel.removeAllRanges(); } else e.target.className=pickedClass; } }\n            }\n            if(isEraserActive) {\n                e.preventDefault(); e.stopPropagation(); const t = e.target; if(t.classList.contains('page-content') || t.classList.contains('a4-page')) return;\n                if(t.tagName === 'DIV' || t.tagName === 'P' || t.tagName.match(/^H[1-6]$/i)) { t.className = 'text-block'; t.style.cssText = ''; } \n                else if(t.tagName === 'SPAN') { if(t.style.color || t.style.background || t.style.textDecoration || t.style.textEmphasis) { const text = document.createTextNode(t.innerText); t.parentNode.replaceChild(text, t); } else { const text = document.createTextNode(t.innerText); t.parentNode.replaceChild(text, t); } }\n            }\n        }, true);\n        document.addEventListener('keydown', (e) => { if(e.key==='Escape') { if(isEraserActive)toggleEraser(); if(isFormatPainterActive)toggleFormatPainter(); if(isInspectorActive)toggleInspector(); } });\n\n        window.copyTxt = function(encoded, el) { navigator.clipboard.writeText(decodeURIComponent(encoded)).then(() => { const old = el.innerHTML; el.innerHTML = '✅ 已复制'; el.style.background='#bbf7d0'; el.style.color='#166534'; setTimeout(() => { el.innerHTML = old; el.style.background=''; el.style.color=''; }, 1500); }); };\n        \n        let isDiffOpen = false;\n        window.toggleDiffSidebar = function() {\n            const s = document.getElementById('diff-sidebar'); const isOpen = s.style.right === '0px';\n            s.style.right = isOpen ? '-450px' : '0px'; document.getElementById('main-a4-container').style.marginRight = isOpen ? '0' : '300px';\n            if(!isOpen) {\n                const area = document.getElementById('diff-content-area'); area.innerHTML = '<div style=\"text-align:center; padding:40px;\">🔄 比对中...</div>';\n                setTimeout(() => {\n                    try {\n                        const raw = JSON.parse(document.getElementById('raw-source-data').textContent);\n                        let cur = \"\"; document.querySelectorAll('.page-content').forEach(p => cur += p.innerText + \"\\n\");\n                        const dmp = new diff_match_patch(); dmp.Diff_Timeout = 2; const diffs = dmp.diff_main(raw, cur); dmp.diff_cleanupSemantic(diffs);\n                        let h = \"\"; let missingCount = 0;\n                        diffs.forEach(d => {\n                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class=\"diff-missing\" title=\"点击复制\" onclick=\"copyTxt('${encodeURIComponent(d[1])}', this)\">${d[1]}</span>`; } else h+=d[1]; }\n                            else if(d[0]===0) h += `<span style=\"color:#94a3b8\">${d[1]}</span>`;\n                        });\n                        area.innerHTML = missingCount===0 ? '<div style=\"color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;\">🎉 完美通关！无漏字。</div>' : h;\n                    } catch(e) { area.innerHTML = '<div style=\"color:#b91c1c;\">⚠️ 比对失败，数据异常。</div>'; }\n                }, 300);\n            }\n        }\n\n        window.addEventListener('DOMContentLoaded', () => {\n            renderThemePresets();\n            try {\n                initLayoutControls(); initDynamicColorPanel();\n                const src = document.getElementById('source-data');\n                window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; \n                const nodes = Array.from(src.children).map(n => n.cloneNode(true));\n                setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);\n            } catch(e){}\n        });\n    </script>\n</body>\n</html>"
-}
+            colorVarMap = {}; const dummy = document.createElement('div'); dummy.style.display = 'none'; document.body.appendChild(dummy);
+            globalExtractedVars.forEach(v => {
+                dummy.style.color = `var(${v})`; let cColor = window.getComputedStyle(dummy).color;
+                if (!colorVarMap[cColor]) colorVarMap[cColor] = []; colorVarMap[cColor].push(v.replace('--c-', ''));
+                dummy.style.backgroundColor = `var(${v})`; let cBg = window.getComputedStyle(dummy).backgroundColor;
+                if (!colorVarMap[cBg]) colorVarMap[cBg] = []; if (!colorVarMap[cBg].includes(v.replace('--c-', ''))) colorVarMap[cBg].push(v.replace('--c-', ''));
+            });
+            document.body.removeChild(dummy);
+        }
 
-你仔细对比我发给你的代码 这是我的前端请求以后得到的。就是前面那段有\n  后面一段没有 就显示的是正行 这是为啥
+        window.toggleInspector = function() {
+            isFormatPainterActive = false; isEraserActive = false; const btn = document.getElementById('btn-inspector'); const container = document.getElementById('main-a4-container');
+            isInspectorActive = !isInspectorActive;
+            if (isInspectorActive) { btn.innerText = '探测中(Esc)'; btn.style.background = '#e9d5ff'; btn.style.color = '#581c87'; container.style.cursor = 'help'; refreshColorMap(); container.addEventListener('mousemove', handleInsp, true); } 
+            else { btn.innerText = '🔍 寻色器'; btn.style.background = ''; btn.style.color = ''; container.style.cursor = 'auto'; container.removeEventListener('mousemove', handleInsp, true); document.getElementById('inspector-tooltip').style.display='none'; }
+        }
+        function handleInsp(e) {
+            const t = e.target; if(t.classList.contains('page-content') || t.classList.contains('a4-page')) { document.getElementById('inspector-tooltip').style.display='none'; return; }
+            const tt = document.getElementById('inspector-tooltip'); tt.style.display = 'block'; tt.style.left = (e.clientX+15)+'px'; tt.style.top = (e.clientY+15)+'px';
+            let c = window.getComputedStyle(t).color; let bg = window.getComputedStyle(t).backgroundColor;
+            let cN = colorVarMap[c] ? colorVarMap[c].join(' / ') : '默认'; let bgN = colorVarMap[bg] ? colorVarMap[bg].join(' / ') : (bg === 'rgba(0, 0, 0, 0)' ? '透明' : '默认');
+            tt.innerHTML = `标签: &lt;${t.tagName.toLowerCase()}&gt;<br>类名: ${Array.from(t.classList).join(', ') || '正文'}<br><br>字色: <span style="display:inline-block;width:10px;height:10px;background:${c};"></span> ${cN}<br>背景: <span style="display:inline-block;width:10px;height:10px;background:${bg};"></span> ${bgN}`;
+        }
+
+        window.toggleFormatPainter = function() {
+            isInspectorActive = false; isEraserActive = false; isFormatPainterActive = !isFormatPainterActive; pickedClass = null;
+            const btn = document.getElementById('btn-format-painter'); btn.innerText = isFormatPainterActive ? '点击吸取...' : '🪄 格式刷'; btn.style.background = isFormatPainterActive ? '#fef08a' : ''; btn.style.color = isFormatPainterActive ? '#854d0e' : '';
+        }
+
+        window.toggleEraser = function() {
+            isFormatPainterActive = false; isInspectorActive = false; isEraserActive = !isEraserActive;
+            const btn = document.getElementById('btn-eraser'); btn.innerText = isEraserActive ? '擦除中(Esc)' : '🧹 橡皮擦'; btn.style.background = isEraserActive ? '#fca5a5' : ''; btn.style.color = isEraserActive ? '#7f1d1d' : '';
+        }
+
+        document.addEventListener('click', e => {
+            if(isFormatPainterActive) {
+                e.preventDefault(); e.stopPropagation();
+                if(!pickedClass) { if(e.target.classList.length>0 && !e.target.classList.contains('page-content')) { pickedClass = e.target.className; document.getElementById('btn-format-painter').innerText = '✅ 涂抹中(Esc)'; document.getElementById('btn-format-painter').style.background = '#bbf7d0'; } }
+                else { const isBlock = pickedClass.includes('title') || pickedClass.includes('block'); if(isBlock) { let p = e.target; while(p && p.tagName!=='DIV' && p.tagName!=='P' && !p.classList.contains('page-content')) p=p.parentElement; if(p && !p.classList.contains('page-content')) p.className=pickedClass; else e.target.className=pickedClass; } else { const sel = window.getSelection(); if(!sel.isCollapsed) { const r = sel.getRangeAt(0); const s = document.createElement('span'); s.className=pickedClass; r.surroundContents(s); sel.removeAllRanges(); } else e.target.className=pickedClass; } }
+            }
+            if(isEraserActive) {
+                e.preventDefault(); e.stopPropagation(); const t = e.target; if(t.classList.contains('page-content') || t.classList.contains('a4-page')) return;
+                if(t.tagName === 'DIV' || t.tagName === 'P' || t.tagName.match(/^H[1-6]$/i)) { t.className = 'text-block'; t.style.cssText = ''; } 
+                else if(t.tagName === 'SPAN') { if(t.style.color || t.style.background || t.style.textDecoration || t.style.textEmphasis) { const text = document.createTextNode(t.innerText); t.parentNode.replaceChild(text, t); } else { const text = document.createTextNode(t.innerText); t.parentNode.replaceChild(text, t); } }
+            }
+        }, true);
+        document.addEventListener('keydown', (e) => { if(e.key==='Escape') { if(isEraserActive)toggleEraser(); if(isFormatPainterActive)toggleFormatPainter(); if(isInspectorActive)toggleInspector(); } });
+
+        window.copyTxt = function(encoded, el) { navigator.clipboard.writeText(decodeURIComponent(encoded)).then(() => { const old = el.innerHTML; el.innerHTML = '✅ 已复制'; el.style.background='#bbf7d0'; el.style.color='#166534'; setTimeout(() => { el.innerHTML = old; el.style.background=''; el.style.color=''; }, 1500); }); };
+        
+        let isDiffOpen = false;
+        window.toggleDiffSidebar = function() {
+            const s = document.getElementById('diff-sidebar'); const isOpen = s.style.right === '0px';
+            s.style.right = isOpen ? '-450px' : '0px'; document.getElementById('main-a4-container').style.marginRight = isOpen ? '0' : '300px';
+            if(!isOpen) {
+                const area = document.getElementById('diff-content-area'); area.innerHTML = '<div style="text-align:center; padding:40px;">🔄 比对中...</div>';
+                setTimeout(() => {
+                    try {
+                        const raw = JSON.parse(document.getElementById('raw-source-data').textContent);
+                        let cur = ""; document.querySelectorAll('.page-content').forEach(p => cur += p.innerText + "\\n");
+                        const dmp = new diff_match_patch(); dmp.Diff_Timeout = 2; const diffs = dmp.diff_main(raw, cur); dmp.diff_cleanupSemantic(diffs);
+                        let h = ""; let missingCount = 0;
+                        diffs.forEach(d => {
+                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class="diff-missing" title="点击复制" onclick="copyTxt('${encodeURIComponent(d[1])}', this)">${d[1]}</span>`; } else h+=d[1]; }
+                            else if(d[0]===0) h += `<span style="color:#94a3b8">${d[1]}</span>`;
+                        });
+                        area.innerHTML = missingCount===0 ? '<div style="color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;">🎉 完美通关！无漏字。</div>' : h;
+                    } catch(e) { area.innerHTML = '<div style="color:#b91c1c;">⚠️ 比对失败，数据异常。</div>'; }
+                }, 300);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderThemePresets();
+            try {
+                initLayoutControls(); initDynamicColorPanel();
+                const src = document.getElementById('source-data');
+                window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; 
+                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
+                setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);
+            } catch(e){}
+        });
+    </script>
+</body>
+</html>"""
+
+    final_html = (
+        html_template.replace('__DOC_TITLE__', str(doc_title))
+        .replace('__DOC_CATEGORY__', str(doc_category))
+        .replace('__THEME_COLORS__', str(theme_colors))
+        .replace('__FINAL_STYLE_CONTENT__', str(final_style_content))
+        .replace('__CONTENT_AREA__', str(content_area))
+        .replace('__ORIGINAL_TEXT__', str(safe_original_json))
+    )
+
+    # 🚨 终极绝杀：直接返回生成的网页字符串，而不是字典！
+    return final_html
