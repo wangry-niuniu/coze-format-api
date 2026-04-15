@@ -294,6 +294,7 @@ async def generate_html(req: FormatRequest):
             if(!baseContainer || !compContainer) return; 
             
             const styleText = document.getElementById('style-data').textContent; 
+            // 🚨 Regex 修好了，只提取颜色变量
             let varsMatch = styleText.match(/--c-[a-zA-Z0-9-]+/g) || []; 
             globalExtractedVars = [...new Set(varsMatch)]; 
             if(globalExtractedVars.length === 0) globalExtractedVars = ['--c-primary', '--c-star', '--c-highlight']; 
