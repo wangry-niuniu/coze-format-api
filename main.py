@@ -70,9 +70,9 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (完美快照修复版)
+    # 🚨 战区三：终极引擎代码生成 (Bug 彻底清零版)
     # =======================================================
-   html_template = "\ufeff" + """<!DOCTYPE html>
+    html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -94,6 +94,10 @@ async def generate_html(req: FormatRequest):
         }
         __THEME_COLORS__
 
+        /* 🚨 终极防弹补丁：强制修复大标题被容器覆盖导致无法居中的问题 */
+        .page-content .title-primary, .page-content h1 { display: block !important; text-align: center !important; width: 100% !important; margin: 30px 0 !important; }
+        .page-content .panel-summary { display: block !important; margin: 30px auto 20px !important; }
+        
         body { background-color: #F1F5F9; font-family: var(--f-family, sans-serif); margin: 0; padding: 0; display: flex; gap: 30px; justify-content: center; color: #334155; }
         
         .a4-container { flex: 1; max-width: 210mm; display: flex; flex-direction: column; gap: 20px; align-items: center; padding-top: 30px; padding-bottom: 40px; transition: margin-right 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -103,7 +107,7 @@ async def generate_html(req: FormatRequest):
         .watermark-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; }
         .watermark-text { font-size: 80px; font-weight: 900; color: #000; opacity: var(--watermark-opacity); transform: rotate(-45deg); white-space: nowrap; font-family: sans-serif; text-transform: uppercase; letter-spacing: 10px; }
 
-        /* 🚀 极致专业的固定色页眉页脚（防弹版 Grid 布局） */
+        /* 🚀 极致专业的固定色页眉页脚 */
         .page-header { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.2px solid #cbd5e1; padding-bottom: 6px; font-size: 10px; color: #64748b; font-weight: bold; z-index: 10; }
         .page-footer { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; font-size: 10px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 6px; z-index: 10; }
         .page-footer .f-left { text-align: left; outline: none; }
@@ -315,6 +319,13 @@ async def generate_html(req: FormatRequest):
             const r=(v)=>Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0');
             return '#' + r(rgb[0]*f + w*(1-f)) + r(rgb[1]*f + w*(1-f)) + r(rgb[2]*f + w*(1-f));
         }
+        
+        // 🚨 强制十六进制转换，确保浏览器取色绝对稳定
+        function rgbToHex(str) {
+            let m = str.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if(m) return "#" + ("0"+parseInt(m[1]).toString(16)).slice(-2) + ("0"+parseInt(m[2]).toString(16)).slice(-2) + ("0"+parseInt(m[3]).toString(16)).slice(-2);
+            return str;
+        }
 
         function processImage(img) {
             try {
@@ -333,15 +344,15 @@ async def generate_html(req: FormatRequest):
                 if (uniquePalette.length < 4) uniquePalette = rawPalette;
 
                 uniquePalette.sort((a,b) => (0.299*a[0]+0.587*a[1]+0.114*a[2]) - (0.299*b[0]+0.587*b[1]+0.114*b[2]));
-                const rgbToHex = (r,g,b) => '#' + [r,g,b].map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
+                const hexGen = (r,g,b) => '#' + [r,g,b].map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
                 
-                const starHex = rgbToHex(...uniquePalette[0]);
-                const primaryHex = rgbToHex(...domRGB);
-                const highlightHex = rgbToHex(...uniquePalette[uniquePalette.length - 1]);
+                const starHex = hexGen(...uniquePalette[0]);
+                const primaryHex = hexGen(...domRGB);
+                const highlightHex = hexGen(...uniquePalette[uniquePalette.length - 1]);
                 
                 let accentHex = primaryHex;
                 for(let i=1; i<uniquePalette.length; i++) {
-                    let temp = rgbToHex(...uniquePalette[i]);
+                    let temp = hexGen(...uniquePalette[i]);
                     if(temp !== starHex && temp !== primaryHex && temp !== highlightHex) { accentHex = temp; break; }
                 }
                 
@@ -382,7 +393,7 @@ async def generate_html(req: FormatRequest):
 
         window.saveCurrentTheme = function() {
             const colors = {};
-            globalExtractedVars.forEach(v => colors[v] = getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+            globalExtractedVars.forEach(v => colors[v] = rgbToHex(getComputedStyle(document.documentElement).getPropertyValue(v).trim()));
             let list = JSON.parse(localStorage.getItem('my_themes') || '[]');
             list.push(colors);
             localStorage.setItem('my_themes', JSON.stringify(list.slice(-5))); 
@@ -400,7 +411,7 @@ async def generate_html(req: FormatRequest):
             });
         }
 
-        window.applyToText = function(varName, command) { const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); if (color) document.execCommand(command, false, color); };
+        window.applyToText = function(varName, command) { const color = rgbToHex(getComputedStyle(document.documentElement).getPropertyValue(varName).trim()); if (color) document.execCommand(command, false, color); };
         
         window.applyStyleSpan = function(color, type) {
             const sel = window.getSelection(); if (sel.isCollapsed) return;
@@ -441,7 +452,7 @@ async def generate_html(req: FormatRequest):
             const coreVars = ['--c-primary', '--c-star', '--c-highlight', '--c-accent', '--c-mod-point'];
             
             coreVars.forEach(v => {
-                const c = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+                let c = rgbToHex(getComputedStyle(document.documentElement).getPropertyValue(v).trim());
                 if(c.startsWith('#')) {
                     let tb = document.createElement('div'); tb.className='hover-color-btn'; tb.style.background = c;
                     tb.title = "字色: " + v.replace('--c-','');
@@ -460,7 +471,7 @@ async def generate_html(req: FormatRequest):
             const divider = document.createElement('div'); divider.style.cssText = "width:1px; height:16px; background:rgba(255,255,255,0.2); margin: 0 4px;";
             rowBg.appendChild(divider);
             
-            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--c-accent').trim();
+            const accentColor = rgbToHex(getComputedStyle(document.documentElement).getPropertyValue('--c-accent').trim());
             
             const btnWavy = document.createElement('div'); btnWavy.innerHTML = '〰️'; btnWavy.style.cssText = "cursor:pointer; font-size:12px; filter:grayscale(100%); transition:0.2s;";
             btnWavy.title = "添加波浪线"; btnWavy.onmousedown = (e) => { e.preventDefault(); applyStyleSpan(accentColor, 'wavy'); };
@@ -488,7 +499,9 @@ async def generate_html(req: FormatRequest):
                 while(node && node !== document.body) { if(node.classList && node.classList.contains('a4-page')) { inPage = true; break; } node = node.parentNode; }
                 if(inPage) {
                     const r = sel.getRangeAt(0).getBoundingClientRect();
-                    menu.style.display = 'flex'; menu.style.top = (r.top - 75 + window.scrollY) + 'px';
+                    menu.style.display = 'flex'; 
+                    // 🚨 摘除滚动偏移，修复固定定位错位 Bug
+                    menu.style.top = (r.top - 75) + 'px';
                     menu.style.left = (r.left + r.width/2 - menu.offsetWidth/2) + 'px';
                 }
             } else { menu.style.display = 'none'; }
@@ -514,8 +527,8 @@ async def generate_html(req: FormatRequest):
             
             base.innerHTML = ''; comp.innerHTML = '';
             globalExtractedVars.forEach(v => {
-                let current = getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#cccccc';
-                let saved = safeGetStorage(v); if(saved) { current = saved; root.setProperty(v, saved); }
+                let current = rgbToHex(getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#cccccc');
+                let saved = safeGetStorage(v); if(saved) { current = rgbToHex(saved); root.setProperty(v, saved); }
                 if (current.startsWith('#')) {
                     const cleanName = v.replace('--c-','');
                     const row = document.createElement('div'); row.className = 'color-row';
