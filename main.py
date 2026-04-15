@@ -72,7 +72,7 @@ async def generate_html(req: FormatRequest):
     # =======================================================
     # 🚨 战区三：终极引擎代码生成 (完美快照修复版)
     # =======================================================
-    html_template = "\ufeff" + """<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
