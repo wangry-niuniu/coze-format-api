@@ -305,17 +305,38 @@ async def generate_html(req: FormatRequest):
         function processImage(img) {
             try {
                 const ct = new ColorThief();
-                const palette = ct.getPalette(img, 6).sort((a,b) => (0.299*a[0]+0.587*a[1]+0.114*a[2]) - (0.299*b[0]+0.587*b[1]+0.114*b[2]));
+                // 1. 贪婪提取：强迫找出 20 种颜色，防止遗漏浅色
+                const rawPalette = ct.getPalette(img, 20);
                 const domRGB = ct.getColor(img);
-                const rgbToHex = (r,g,b) => '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
                 
-                const starHex = rgbToHex(...palette[0]);
-                const primaryHex = rgbToHex(...domRGB);
-                const highlightHex = rgbToHex(...palette[palette.length - 1]) !== primaryHex ? rgbToHex(...palette[palette.length - 1]) : rgbToHex(...palette[palette.length - 2]);
+                // 2. 智能去重：计算颜色在 RGB 空间的欧几里得距离，剔除过于接近的同系颜色
+                const dist = (c1, c2) => Math.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2 + (c1[2]-c2[2])**2);
+                let uniquePalette = [];
+                for (let c of rawPalette) {
+                    let isUnique = true;
+                    for (let u of uniquePalette) {
+                        if (dist(c, u) < 45) { isUnique = false; break; } // 距离<45视为同色，直接剔除
+                    }
+                    // 顺手剔除过于接近纯白或纯黑的无效背景色
+                    const lum = 0.299*c[0] + 0.587*c[1] + 0.114*c[2];
+                    if (isUnique && lum > 15 && lum < 245) uniquePalette.push(c);
+                }
                 
+                // 兜底机制
+                if (uniquePalette.length < 4) uniquePalette = rawPalette;
+
+                // 3. 按亮度从暗到亮排序
+                uniquePalette.sort((a,b) => (0.299*a[0]+0.587*a[1]+0.114*a[2]) - (0.299*b[0]+0.587*b[1]+0.114*b[2]));
+                const rgbToHex = (r,g,b) => '#' + [r,g,b].map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
+                
+                const starHex = rgbToHex(...uniquePalette[0]); // 最暗的做深色
+                const primaryHex = rgbToHex(...domRGB);        // 面积最大的做主色
+                const highlightHex = rgbToHex(...uniquePalette[uniquePalette.length - 1]); // 最亮的做强调色
+                
+                // 挑一个不重复的中间色做点缀色 Accent
                 let accentHex = primaryHex;
-                for(let i=1; i<palette.length; i++) {
-                    let temp = rgbToHex(...palette[i]);
+                for(let i=1; i<uniquePalette.length; i++) {
+                    let temp = rgbToHex(...uniquePalette[i]);
                     if(temp !== starHex && temp !== primaryHex && temp !== highlightHex) { accentHex = temp; break; }
                 }
                 
@@ -331,7 +352,7 @@ async def generate_html(req: FormatRequest):
                 display.innerHTML = `<div style="flex:1; background:${starHex};" title="深色"></div><div style="flex:1; background:${primaryHex};" title="主色"></div><div style="flex:1; background:${accentHex};" title="点缀色"></div><div style="flex:1; background:${highlightHex};" title="强调色"></div>`;
 
                 initDynamicColorPanel();
-                alert('🎉 4色魔法引擎提取成功！主题已更新。');
+                alert('🎉 魔法引擎升级！已成功剥离色卡中的独特色彩。');
             } catch(e) { alert('提取颜色失败，请换一张色彩丰富的图片重试！'); }
         }
 
