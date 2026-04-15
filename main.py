@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Any, Optional
 import json
@@ -16,11 +15,11 @@ class FormatRequest(BaseModel):
     zjmk_zs: Optional[str] = ""
     original_text: Optional[Any] = []
 
-# 🚨 明确告诉平台，直接返回纯正的 HTML，彻底抛弃 JSON 解析！
-@app.post("/generate_html", response_class=HTMLResponse)
+# 🚨 已经去掉了 HTMLResponse，回归 Coze 要求的标准 JSON 格式
+@app.post("/generate_html")
 async def generate_html(req: FormatRequest):
     # =======================================================
-    # 🚨 战区一：数据清洗与防错
+    # 🚨 战区一：数据清洗与防错 (pure_content)
     # =======================================================
     content_area = req.pure_content
     if isinstance(content_area, str):
@@ -41,7 +40,7 @@ async def generate_html(req: FormatRequest):
     clean_zjmk_zs = (req.zjmk_zs or "").strip()
 
     # =======================================================
-    # 🚨 战区二：比对文本预处理
+    # 🚨 战区二：比对文本预处理 (original_text)
     # =======================================================
     original_raw = req.original_text
     if isinstance(original_raw, str):
@@ -95,11 +94,11 @@ async def generate_html(req: FormatRequest):
         }
         __THEME_COLORS__
 
-        /* 🚨 大标题绝对居中 */
+        /* 🚨 终极防弹补丁：大标题绝对居中 */
         .page-content .title-primary, .page-content h1 { display: block !important; text-align: center !important; width: 100% !important; margin: 30px 0 !important; }
         .page-content .panel-summary { display: block !important; margin: 30px auto 20px !important; }
         
-        /* 🚨 两端对齐，杜绝最后一行拉伸 */
+        /* 🚨 终极神圣三件套：完美两端对齐，且杜绝最后一行散字拉伸 */
         .text-block, .script-line {
             margin-bottom: 8px;
             text-align: justify !important; 
@@ -535,11 +534,11 @@ async def generate_html(req: FormatRequest):
                     const cleanName = v.replace('--c-','');
                     const row = document.createElement('div'); row.className = 'color-row';
                     row.innerHTML = `
-                        <span style="font-size:12px; color:#475569; font-weight:600;">${cleanName}</span>
-                        <div style="display:flex; gap:4px; align-items:center;">
-                            <input type="color" value="${current}" oninput="root.setProperty('${v}', this.value); safeSetStorage('${v}', this.value); buildHoverToolbar();" style="width:24px; height:24px; border:none; background:none; cursor:pointer; padding:0;">
-                            <button class="color-tool-btn" title="文字上色" onclick="applyToText('${v}', 'foreColor')"><span style="font-family:serif; font-weight:bold; font-size:14px;">A</span></button>
-                            <button class="color-tool-btn" title="马克笔半高亮" onclick="applyStyleSpan('${current}', 'marker')"><div style="width:12px; height:12px; background:linear-gradient(transparent 50%, currentColor 50%); border-radius:2px;"></div></button>
+                        <span style=\"font-size:12px; color:#475569; font-weight:600;\">${cleanName}</span>
+                        <div style=\"display:flex; gap:4px; align-items:center;\">
+                            <input type=\"color\" value=\"${current}\" oninput=\"root.setProperty('${v}', this.value); safeSetStorage('${v}', this.value); buildHoverToolbar();\" style=\"width:24px; height:24px; border:none; background:none; cursor:pointer; padding:0;\">
+                            <button class=\"color-tool-btn\" title=\"文字上色\" onclick=\"applyToText('${v}', 'foreColor')\"><span style=\"font-family:serif; font-weight:bold; font-size:14px;\">A</span></button>
+                            <button class=\"color-tool-btn\" title=\"马克笔半高亮\" onclick=\"applyStyleSpan('${current}', 'marker')\"><div style=\"width:12px; height:12px; background:linear-gradient(transparent 50%, currentColor 50%); border-radius:2px;\"></div></button>
                         </div>`;
                     if(['primary', 'star', 'highlight', 'accent', 'main'].some(k => v.includes(k))) base.appendChild(row); else comp.appendChild(row);
                 }
@@ -618,7 +617,7 @@ async def generate_html(req: FormatRequest):
             const tt = document.getElementById('inspector-tooltip'); tt.style.display = 'block'; tt.style.left = (e.clientX+15)+'px'; tt.style.top = (e.clientY+15)+'px';
             let c = window.getComputedStyle(t).color; let bg = window.getComputedStyle(t).backgroundColor;
             let cN = colorVarMap[c] ? colorVarMap[c].join(' / ') : '默认'; let bgN = colorVarMap[bg] ? colorVarMap[bg].join(' / ') : (bg === 'rgba(0, 0, 0, 0)' ? '透明' : '默认');
-            tt.innerHTML = `标签: &lt;${t.tagName.toLowerCase()}&gt;<br>类名: ${Array.from(t.classList).join(', ') || '正文'}<br><br>字色: <span style="display:inline-block;width:10px;height:10px;background:${c};"></span> ${cN}<br>背景: <span style="display:inline-block;width:10px;height:10px;background:${bg};"></span> ${bgN}`;
+            tt.innerHTML = `标签: &lt;${t.tagName.toLowerCase()}&gt;<br>类名: ${Array.from(t.classList).join(', ') || '正文'}<br><br>字色: <span style=\"display:inline-block;width:10px;height:10px;background:${c};\"></span> ${cN}<br>背景: <span style=\"display:inline-block;width:10px;height:10px;background:${bg};\"></span> ${bgN}`;
         }
 
         window.toggleFormatPainter = function() {
@@ -652,7 +651,7 @@ async def generate_html(req: FormatRequest):
             const s = document.getElementById('diff-sidebar'); const isOpen = s.style.right === '0px';
             s.style.right = isOpen ? '-450px' : '0px'; document.getElementById('main-a4-container').style.marginRight = isOpen ? '0' : '300px';
             if(!isOpen) {
-                const area = document.getElementById('diff-content-area'); area.innerHTML = '<div style="text-align:center; padding:40px;">🔄 比对中...</div>';
+                const area = document.getElementById('diff-content-area'); area.innerHTML = '<div style=\"text-align:center; padding:40px;\">🔄 比对中...</div>';
                 setTimeout(() => {
                     try {
                         const raw = JSON.parse(document.getElementById('raw-source-data').textContent);
@@ -660,11 +659,11 @@ async def generate_html(req: FormatRequest):
                         const dmp = new diff_match_patch(); dmp.Diff_Timeout = 2; const diffs = dmp.diff_main(raw, cur); dmp.diff_cleanupSemantic(diffs);
                         let h = ""; let missingCount = 0;
                         diffs.forEach(d => {
-                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class="diff-missing" title="点击复制" onclick="copyTxt('${encodeURIComponent(d[1])}', this)">${d[1]}</span>`; } else h+=d[1]; }
-                            else if(d[0]===0) h += `<span style="color:#94a3b8">${d[1]}</span>`;
+                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class=\"diff-missing\" title=\"点击复制\" onclick=\"copyTxt('${encodeURIComponent(d[1])}', this)\">${d[1]}</span>`; } else h+=d[1]; }
+                            else if(d[0]===0) h += `<span style=\"color:#94a3b8\">${d[1]}</span>`;
                         });
-                        area.innerHTML = missingCount===0 ? '<div style="color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;">🎉 完美通关！无漏字。</div>' : h;
-                    } catch(e) { area.innerHTML = '<div style="color:#b91c1c;">⚠️ 比对失败，数据异常。</div>'; }
+                        area.innerHTML = missingCount===0 ? '<div style=\"color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;\">🎉 完美通关！无漏字。</div>' : h;
+                    } catch(e) { area.innerHTML = '<div style=\"color:#b91c1c;\">⚠️ 比对失败，数据异常。</div>'; }
                 }, 300);
             }
         }
@@ -692,5 +691,5 @@ async def generate_html(req: FormatRequest):
         .replace('__ORIGINAL_TEXT__', str(safe_original_json))
     )
 
-    # 🚨 终极绝杀：直接返回生成的网页字符串，而不是字典！
-    return final_html
+    # 🚨 终极返回：标准字典格式
+    return {"final_html": final_html}
