@@ -70,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (V4.1 终极防弹版)
+    # 🚨 战区三：终极引擎代码生成 (V4.2 语法修复版)
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -412,12 +412,14 @@ async def generate_html(req: FormatRequest):
             renderThemePresets();
         }
 
-       function renderThemePresets() {
+        function renderThemePresets() {
             const container = document.getElementById('theme-presets'); container.innerHTML = '';
             let list = JSON.parse(localStorage.getItem('my_themes') || '[]');
             list.forEach((theme, index) => {
                 const b = document.createElement('div'); b.className = 'preset-badge'; b.style.background = theme['--c-primary'];
-                b.title = "左键：切换至此主题\n右键：取消收藏该主题";
+                
+                // 🚨 修复 Python 转义报错：使用 \\n 
+                b.title = "左键：切换至此主题\\n右键：取消收藏该主题";
                 
                 // 左键：切换主题
                 b.onclick = () => { Object.keys(theme).forEach(k => root.setProperty(k, theme[k])); initDynamicColorPanel(); };
@@ -704,7 +706,7 @@ async def generate_html(req: FormatRequest):
                 initLayoutControls(); initDynamicColorPanel();
                 const src = document.getElementById('source-data');
                 window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; 
-                const nodes = Array.from(src.childNodes).map(n => n.cloneNode(true));
+                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
                 setTimeout(() => { dynH = 850; runPaginationEngine(nodes); }, 300);
             } catch(e){}
         });
