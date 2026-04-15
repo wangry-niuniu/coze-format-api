@@ -70,9 +70,10 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (Bug 彻底清零版)
+    # 🚨 战区三：终极引擎代码生成 (UTF-8 护身符回归版)
     # =======================================================
-    html_template = """<!DOCTYPE html>
+    # 👇 这里的 "\ufeff" 就是镇压乱码的神器，千万不能少！
+    html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
