@@ -70,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (滑块全部找回版)
+    # 🚨 战区三：终极引擎代码生成 (完美快照修复版)
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -84,6 +84,7 @@ async def generate_html(req: FormatRequest):
     <style id="dynamic-style">
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
         :root {
+            /* 4 色核心系统默认值 */
             --c-primary: #52A89E; --c-star: #2D7A71; --c-highlight: #D59A44; --c-accent: #E07A5F;
             --c-mod-point: #9A7EB4; --c-mod-mnemonic: #E88796; --c-mod-practice: #48BB78;
             --c-border: #CBE3E0; --c-case-bg: #EAF5F4; --c-secondary: #F4FAFA;
@@ -98,12 +99,17 @@ async def generate_html(req: FormatRequest):
         .a4-container { flex: 1; max-width: 210mm; display: flex; flex-direction: column; gap: 20px; align-items: center; padding-top: 30px; padding-bottom: 40px; transition: margin-right 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .a4-page { width: 210mm; min-height: 297mm; position: relative; padding: 18mm 15mm 30mm 15mm; page-break-after: always; background: #FFFFFF; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); overflow: hidden; flex-shrink: 0; }
         
+        /* 🛡️ 巨幅矢量水印 */
         .watermark-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; }
         .watermark-text { font-size: 80px; font-weight: 900; color: #000; opacity: var(--watermark-opacity); transform: rotate(-45deg); white-space: nowrap; font-family: sans-serif; text-transform: uppercase; letter-spacing: 10px; }
 
+        /* 🚀 极致专业的固定色页眉页脚（防弹版 Grid 布局） */
         .page-header { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.2px solid #cbd5e1; padding-bottom: 6px; font-size: 10px; color: #64748b; font-weight: bold; z-index: 10; }
-        .page-footer { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 6px; z-index: 10; }
-        .page-footer span { flex: 1; }
+        .page-footer { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; font-size: 10px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 6px; z-index: 10; }
+        .page-footer .f-left { text-align: left; outline: none; }
+        .page-footer .f-center { text-align: center; font-family: Arial, sans-serif; font-weight: bold; pointer-events: none; user-select: none; }
+        .page-footer .f-right { text-align: right; outline: none; }
+
         .page-content { position: relative; z-index: 5; display: flow-root; width: 100%; font-size: var(--f-size-base, 14px); line-height: var(--line-height, 1.8); letter-spacing: var(--letter-spacing, 0px); font-family: var(--f-family) !important; min-height: 50px; }
         
         .page-content table { width: 100%; border-collapse: collapse; table-layout: fixed; word-wrap: break-word; margin: 15px 0; font-size: 13px; }
@@ -113,6 +119,7 @@ async def generate_html(req: FormatRequest):
         [contenteditable="true"]:hover { background-color: rgba(113, 176, 246, 0.03); cursor: text; }
         .eraser-mode * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23EF4444" stroke-width="2"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"/><line x1="18" y1="13" x2="11" y2="20"/></svg>') 0 20, crosshair !important; }
 
+        /* 🚀 玻璃拟物面板 */
         .control-panel { width: 340px; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(15px); padding: 24px; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8); border: 1px solid rgba(226, 232, 240, 0.8); height: fit-content; position: sticky; top: 30px; z-index: 1000; flex-shrink: 0; max-height: 95vh; overflow-y: auto; }
         .control-panel::-webkit-scrollbar { width: 4px; } .control-panel::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         
@@ -123,10 +130,12 @@ async def generate_html(req: FormatRequest):
         .ctrl-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-main { background: var(--c-primary); color: #fff; border: none; padding: 14px; margin-top: 10px; }
 
+        /* 色板样式 */
         .color-row { display:flex; justify-content:space-between; margin-bottom:10px; align-items:center; }
         .color-tool-btn { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; transition:0.2s; color:#475569;}
         .color-tool-btn:hover { background:#e2e8f0; color:#0f172a;}
 
+        /* 收藏夹小徽章 */
         .preset-badge { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: 0.2s; }
         .preset-badge:hover { transform: scale(1.2); }
 
@@ -138,6 +147,7 @@ async def generate_html(req: FormatRequest):
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--c-primary); cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
 
+        /* Notion 划词菜单 & 寻色器 */
         #inspector-tooltip { position: fixed; display: none; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); color: #f8fafc; padding: 14px 18px; border-radius: 12px; font-size: 12px; z-index: 99999; pointer-events: none; line-height: 1.6; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.15); }
         #notion-hover-menu { position: fixed; display: none; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 8px 14px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 10000; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.1); flex-direction: column; align-items: flex-start;}
         .hover-color-btn { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 1.5px solid rgba(255,255,255,0.2); transition: transform 0.1s; }
@@ -218,8 +228,8 @@ async def generate_html(req: FormatRequest):
 
         <div style="display:flex; gap:6px; margin-bottom:10px;">
             <button class="ctrl-btn" style="flex:1; background:#f8fafc; color:#475569; border:1px solid #e2e8f0; margin:0; padding:10px 0; font-size:12px;" onclick="recalculatePagination()" title="增删内容后，重新计算 A4 换页">🔄 重新分页</button>
-            <button class="ctrl-btn" style="flex:1; background:#f8fafc; color:#475569; border:1px solid #e2e8f0; margin:0; padding:10px 0; font-size:12px;" onclick="restoreOriginal()" title="放弃修改，还原回最初排版">⏪ 还原原文</button>
-            <button class="ctrl-btn" style="flex:1; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; margin:0; padding:10px 0; font-size:12px;" onclick="clearAllContent()" title="清空全部内容，变成一张白纸">🗑️ 清空纸张</button>
+            <button class="ctrl-btn" style="flex:1; background:#f8fafc; color:#475569; border:1px solid #e2e8f0; margin:0; padding:10px 0; font-size:12px;" onclick="restoreOriginal()" title="放弃修改，彻底还原回最初大模型的排版">⏪ 还原原文</button>
+            <button class="ctrl-btn" style="flex:1; background:#fff1f2; color:#be123c; border:1px solid #fecdd3; margin:0; padding:10px 0; font-size:12px;" onclick="clearManualStyles()" title="仅清除用悬浮菜单涂抹的颜色、高亮和批注，保留文字">🧹 清除手改</button>
         </div>
 
         <button class="ctrl-btn btn-main" style="margin-top:0;" onclick="recalculatePagination(); setTimeout(()=>window.print(), 500);">💾 导出最终 PDF</button>
@@ -271,7 +281,7 @@ async def generate_html(req: FormatRequest):
                 <div class="page-content" contenteditable="true" spellcheck="false"></div>
                 <div class="page-footer">
                     <span class="f-left sync-text" data-key="f-left" contenteditable="true">内部教研</span>
-                    <span class="f-center" style="font-family:Arial; font-weight:bold;">- ${pageCount} -</span>
+                    <span class="f-center">- ${pageCount} -</span>
                     <span class="f-right sync-text" data-key="f-right" contenteditable="true">独家整理</span>
                 </div>`;
             document.getElementById('main-a4-container').appendChild(p);
@@ -279,10 +289,13 @@ async def generate_html(req: FormatRequest):
             return p;
         }
 
-        window.clearAllContent = function() {
-            if(confirm('⚠️ 确定要清空所有内容，变成一张白纸吗？')) {
-                document.querySelectorAll('.a4-page').forEach(p => p.remove());
-                pageCount = 0; createNewPage();
+        // 🌟 修复版的“清除手改”与“还原原文”
+        window.clearManualStyles = function() {
+            if(confirm('🧹 确定要清除所有手动涂抹的颜色、高亮和批注吗？\\n（只会清除手改的样式，不会删除文字。若想彻底还原大模型排版，请点击【还原原文】）')) {
+                document.querySelectorAll('.page-content span').forEach(span => {
+                    span.style.color = ''; span.style.background = ''; span.style.backgroundColor = '';
+                    span.style.textDecoration = ''; span.style.textEmphasis = ''; span.style.webkitTextEmphasis = '';
+                });
             }
         };
 
@@ -291,6 +304,7 @@ async def generate_html(req: FormatRequest):
                 document.querySelectorAll('.a4-page').forEach(p => p.remove());
                 pageCount = 0; dynH = getSafeH();
                 const src = document.getElementById('source-data');
+                src.innerHTML = window.__ORIGINAL_HTML_BACKUP__; // 🌟 从快照中完美恢复
                 const nodes = Array.from(src.children).map(n => n.cloneNode(true));
                 runPaginationEngine(nodes);
             }
@@ -305,35 +319,26 @@ async def generate_html(req: FormatRequest):
         function processImage(img) {
             try {
                 const ct = new ColorThief();
-                // 1. 贪婪提取：强迫找出 20 种颜色，防止遗漏浅色
                 const rawPalette = ct.getPalette(img, 20);
                 const domRGB = ct.getColor(img);
                 
-                // 2. 智能去重：计算颜色在 RGB 空间的欧几里得距离，剔除过于接近的同系颜色
                 const dist = (c1, c2) => Math.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2 + (c1[2]-c2[2])**2);
                 let uniquePalette = [];
                 for (let c of rawPalette) {
                     let isUnique = true;
-                    for (let u of uniquePalette) {
-                        if (dist(c, u) < 45) { isUnique = false; break; } // 距离<45视为同色，直接剔除
-                    }
-                    // 顺手剔除过于接近纯白或纯黑的无效背景色
+                    for (let u of uniquePalette) { if (dist(c, u) < 45) { isUnique = false; break; } }
                     const lum = 0.299*c[0] + 0.587*c[1] + 0.114*c[2];
                     if (isUnique && lum > 15 && lum < 245) uniquePalette.push(c);
                 }
-                
-                // 兜底机制
                 if (uniquePalette.length < 4) uniquePalette = rawPalette;
 
-                // 3. 按亮度从暗到亮排序
                 uniquePalette.sort((a,b) => (0.299*a[0]+0.587*a[1]+0.114*a[2]) - (0.299*b[0]+0.587*b[1]+0.114*b[2]));
                 const rgbToHex = (r,g,b) => '#' + [r,g,b].map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
                 
-                const starHex = rgbToHex(...uniquePalette[0]); // 最暗的做深色
-                const primaryHex = rgbToHex(...domRGB);        // 面积最大的做主色
-                const highlightHex = rgbToHex(...uniquePalette[uniquePalette.length - 1]); // 最亮的做强调色
+                const starHex = rgbToHex(...uniquePalette[0]);
+                const primaryHex = rgbToHex(...domRGB);
+                const highlightHex = rgbToHex(...uniquePalette[uniquePalette.length - 1]);
                 
-                // 挑一个不重复的中间色做点缀色 Accent
                 let accentHex = primaryHex;
                 for(let i=1; i<uniquePalette.length; i++) {
                     let temp = rgbToHex(...uniquePalette[i]);
@@ -653,7 +658,9 @@ async def generate_html(req: FormatRequest):
             renderThemePresets();
             try {
                 initLayoutControls(); initDynamicColorPanel();
-                const src = document.getElementById('source-data'); const nodes = Array.from(src.children);
+                const src = document.getElementById('source-data');
+                window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; // 🌟 建立绝对的“防弹快照”
+                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
                 setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);
             } catch(e){}
         });
