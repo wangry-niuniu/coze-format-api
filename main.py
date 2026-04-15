@@ -70,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (V4.2 语法修复版)
+    # 🚨 战区三：终极引擎代码生成
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -163,7 +163,14 @@ async def generate_html(req: FormatRequest):
         #diff-sidebar { position: fixed; right: -450px; top: 0; width: 400px; height: 100vh; background: #fff; box-shadow: -10px 0 40px rgba(0,0,0,0.1); z-index: 9999; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
         .diff-missing { background:#fee2e2; color:#b91c1c; font-weight:800; padding:2px 4px; border-radius:4px; cursor:pointer; border-bottom:2px solid #ef4444; }
         
-        @media print { .control-panel, #diff-sidebar, #notion-hover-menu { display: none !important; } }
+        /* 🚨 终极核弹级修复：彻底打破打印机的 Flexbox 灾难 */
+        @media print { 
+            .control-panel, #diff-sidebar, #notion-hover-menu { display: none !important; } 
+            body { display: block !important; background: #fff !important; margin: 0 !important; padding: 0 !important; }
+            .a4-container { display: block !important; padding: 0 !important; margin: 0 !important; max-width: none !important; }
+            .a4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always !important; }
+            @page { size: A4 portrait; margin: 0; }
+        }
         __FINAL_STYLE_CONTENT__
     </style>
 </head>
