@@ -72,7 +72,7 @@ async def generate_html(req: FormatRequest):
     # =======================================================
     # 🚨 战区三：终极引擎代码生成 (Bug 彻底清零版)
     # =======================================================
-    html_template = "\ufeff" + """<!DOCTYPE html>
+    html_template = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -84,7 +84,6 @@ async def generate_html(req: FormatRequest):
     <style id="dynamic-style">
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
         :root {
-            /* 4 色核心系统默认值 */
             --c-primary: #52A89E; --c-star: #2D7A71; --c-highlight: #D59A44; --c-accent: #E07A5F;
             --c-mod-point: #9A7EB4; --c-mod-mnemonic: #E88796; --c-mod-practice: #48BB78;
             --c-border: #CBE3E0; --c-case-bg: #EAF5F4; --c-secondary: #F4FAFA;
@@ -94,20 +93,28 @@ async def generate_html(req: FormatRequest):
         }
         __THEME_COLORS__
 
-        /* 🚨 终极防弹补丁：强制修复大标题被容器覆盖导致无法居中的问题 */
+        /* 🚨 终极防弹补丁：大标题绝对居中 */
         .page-content .title-primary, .page-content h1 { display: block !important; text-align: center !important; width: 100% !important; margin: 30px 0 !important; }
         .page-content .panel-summary { display: block !important; margin: 30px auto 20px !important; }
         
+        /* 🚨 终极神圣三件套：完美两端对齐，且杜绝最后一行散字拉伸 */
+        .text-block, .script-line {
+            margin-bottom: 8px;
+            text-align: justify !important; 
+            text-justify: inter-ideograph !important; 
+            text-align-last: left !important;
+            word-break: break-word;
+            break-inside: avoid;
+        }
+
         body { background-color: #F1F5F9; font-family: var(--f-family, sans-serif); margin: 0; padding: 0; display: flex; gap: 30px; justify-content: center; color: #334155; }
         
         .a4-container { flex: 1; max-width: 210mm; display: flex; flex-direction: column; gap: 20px; align-items: center; padding-top: 30px; padding-bottom: 40px; transition: margin-right 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .a4-page { width: 210mm; min-height: 297mm; position: relative; padding: 18mm 15mm 30mm 15mm; page-break-after: always; background: #FFFFFF; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); overflow: hidden; flex-shrink: 0; }
         
-        /* 🛡️ 巨幅矢量水印 */
         .watermark-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; }
         .watermark-text { font-size: 80px; font-weight: 900; color: #000; opacity: var(--watermark-opacity); transform: rotate(-45deg); white-space: nowrap; font-family: sans-serif; text-transform: uppercase; letter-spacing: 10px; }
 
-        /* 🚀 极致专业的固定色页眉页脚 */
         .page-header { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.2px solid #cbd5e1; padding-bottom: 6px; font-size: 10px; color: #64748b; font-weight: bold; z-index: 10; }
         .page-footer { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; font-size: 10px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 6px; z-index: 10; }
         .page-footer .f-left { text-align: left; outline: none; }
@@ -123,7 +130,6 @@ async def generate_html(req: FormatRequest):
         [contenteditable="true"]:hover { background-color: rgba(113, 176, 246, 0.03); cursor: text; }
         .eraser-mode * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23EF4444" stroke-width="2"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"/><line x1="18" y1="13" x2="11" y2="20"/></svg>') 0 20, crosshair !important; }
 
-        /* 🚀 玻璃拟物面板 */
         .control-panel { width: 340px; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(15px); padding: 24px; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8); border: 1px solid rgba(226, 232, 240, 0.8); height: fit-content; position: sticky; top: 30px; z-index: 1000; flex-shrink: 0; max-height: 95vh; overflow-y: auto; }
         .control-panel::-webkit-scrollbar { width: 4px; } .control-panel::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         
@@ -134,12 +140,10 @@ async def generate_html(req: FormatRequest):
         .ctrl-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-main { background: var(--c-primary); color: #fff; border: none; padding: 14px; margin-top: 10px; }
 
-        /* 色板样式 */
         .color-row { display:flex; justify-content:space-between; margin-bottom:10px; align-items:center; }
         .color-tool-btn { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; transition:0.2s; color:#475569;}
         .color-tool-btn:hover { background:#e2e8f0; color:#0f172a;}
 
-        /* 收藏夹小徽章 */
         .preset-badge { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: 0.2s; }
         .preset-badge:hover { transform: scale(1.2); }
 
@@ -151,7 +155,6 @@ async def generate_html(req: FormatRequest):
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--c-primary); cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
 
-        /* Notion 划词菜单 & 寻色器 */
         #inspector-tooltip { position: fixed; display: none; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); color: #f8fafc; padding: 14px 18px; border-radius: 12px; font-size: 12px; z-index: 99999; pointer-events: none; line-height: 1.6; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.15); }
         #notion-hover-menu { position: fixed; display: none; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 8px 14px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 10000; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.1); flex-direction: column; align-items: flex-start;}
         .hover-color-btn { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 1.5px solid rgba(255,255,255,0.2); transition: transform 0.1s; }
@@ -293,7 +296,6 @@ async def generate_html(req: FormatRequest):
             return p;
         }
 
-        // 🌟 修复版的“清除手改”与“还原原文”
         window.clearManualStyles = function() {
             if(confirm('🧹 确定要清除所有手动涂抹的颜色、高亮和批注吗？\\n（只会清除手改的样式，不会删除文字。若想彻底还原大模型排版，请点击【还原原文】）')) {
                 document.querySelectorAll('.page-content span').forEach(span => {
@@ -308,7 +310,7 @@ async def generate_html(req: FormatRequest):
                 document.querySelectorAll('.a4-page').forEach(p => p.remove());
                 pageCount = 0; dynH = getSafeH();
                 const src = document.getElementById('source-data');
-                src.innerHTML = window.__ORIGINAL_HTML_BACKUP__; // 🌟 从快照中完美恢复
+                src.innerHTML = window.__ORIGINAL_HTML_BACKUP__;
                 const nodes = Array.from(src.children).map(n => n.cloneNode(true));
                 runPaginationEngine(nodes);
             }
@@ -320,7 +322,6 @@ async def generate_html(req: FormatRequest):
             return '#' + r(rgb[0]*f + w*(1-f)) + r(rgb[1]*f + w*(1-f)) + r(rgb[2]*f + w*(1-f));
         }
         
-        // 🚨 强制十六进制转换，确保浏览器取色绝对稳定
         function rgbToHex(str) {
             let m = str.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
             if(m) return "#" + ("0"+parseInt(m[1]).toString(16)).slice(-2) + ("0"+parseInt(m[2]).toString(16)).slice(-2) + ("0"+parseInt(m[3]).toString(16)).slice(-2);
@@ -500,7 +501,6 @@ async def generate_html(req: FormatRequest):
                 if(inPage) {
                     const r = sel.getRangeAt(0).getBoundingClientRect();
                     menu.style.display = 'flex'; 
-                    // 🚨 摘除滚动偏移，修复固定定位错位 Bug
                     menu.style.top = (r.top - 75) + 'px';
                     menu.style.left = (r.left + r.width/2 - menu.offsetWidth/2) + 'px';
                 }
@@ -643,7 +643,7 @@ async def generate_html(req: FormatRequest):
         }, true);
         document.addEventListener('keydown', (e) => { if(e.key==='Escape') { if(isEraserActive)toggleEraser(); if(isFormatPainterActive)toggleFormatPainter(); if(isInspectorActive)toggleInspector(); } });
 
-        window.copyTxt = function(t, el) { navigator.clipboard.writeText(t).then(() => { const old = el.innerHTML; el.innerHTML = '✅ 已复制'; el.style.background='#bbf7d0'; el.style.color='#166534'; setTimeout(() => { el.innerHTML = old; el.style.background=''; el.style.color=''; }, 1500); }); };
+        window.copyTxt = function(encoded, el) { navigator.clipboard.writeText(decodeURIComponent(encoded)).then(() => { const old = el.innerHTML; el.innerHTML = '✅ 已复制'; el.style.background='#bbf7d0'; el.style.color='#166534'; setTimeout(() => { el.innerHTML = old; el.style.background=''; el.style.color=''; }, 1500); }); };
         
         let isDiffOpen = false;
         window.toggleDiffSidebar = function() {
@@ -658,7 +658,7 @@ async def generate_html(req: FormatRequest):
                         const dmp = new diff_match_patch(); dmp.Diff_Timeout = 2; const diffs = dmp.diff_main(raw, cur); dmp.diff_cleanupSemantic(diffs);
                         let h = ""; let missingCount = 0;
                         diffs.forEach(d => {
-                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class="diff-missing" title="点击复制" onclick="copyTxt('${d[1].replace(/'/g,"\\'").replace(/"/g,"&quot;").replace(/\\n/g,'\\\\n')}', this)">${d[1]}</span>`; } else h+=d[1]; }
+                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class="diff-missing" title="点击复制" onclick="copyTxt('${encodeURIComponent(d[1])}', this)">${d[1]}</span>`; } else h+=d[1]; }
                             else if(d[0]===0) h += `<span style="color:#94a3b8">${d[1]}</span>`;
                         });
                         area.innerHTML = missingCount===0 ? '<div style="color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;">🎉 完美通关！无漏字。</div>' : h;
@@ -672,7 +672,7 @@ async def generate_html(req: FormatRequest):
             try {
                 initLayoutControls(); initDynamicColorPanel();
                 const src = document.getElementById('source-data');
-                window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; // 🌟 建立绝对的“防弹快照”
+                window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; 
                 const nodes = Array.from(src.children).map(n => n.cloneNode(true));
                 setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);
             } catch(e){}
