@@ -18,7 +18,7 @@ class FormatRequest(BaseModel):
 @app.post("/generate_html")
 async def generate_html(req: FormatRequest):
     # =======================================================
-    # 🚨 战区一：数据清洗与防错
+    # 🚨 战区一：数据清洗与防错 (pure_content)
     # =======================================================
     content_area = req.pure_content
     if isinstance(content_area, str):
@@ -39,7 +39,7 @@ async def generate_html(req: FormatRequest):
     clean_zjmk_zs = (req.zjmk_zs or "").strip()
 
     # =======================================================
-    # 🚨 战区二：比对文本预处理
+    # 🚨 战区二：比对文本预处理 (original_text)
     # =======================================================
     original_raw = req.original_text
     if isinstance(original_raw, str):
@@ -70,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (含文档控制三剑客)
+    # 🚨 战区三：终极引擎代码生成 (滑块全部找回版)
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -84,7 +84,6 @@ async def generate_html(req: FormatRequest):
     <style id="dynamic-style">
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
         :root {
-            /* 4 色核心系统默认值 */
             --c-primary: #52A89E; --c-star: #2D7A71; --c-highlight: #D59A44; --c-accent: #E07A5F;
             --c-mod-point: #9A7EB4; --c-mod-mnemonic: #E88796; --c-mod-practice: #48BB78;
             --c-border: #CBE3E0; --c-case-bg: #EAF5F4; --c-secondary: #F4FAFA;
@@ -99,7 +98,6 @@ async def generate_html(req: FormatRequest):
         .a4-container { flex: 1; max-width: 210mm; display: flex; flex-direction: column; gap: 20px; align-items: center; padding-top: 30px; padding-bottom: 40px; transition: margin-right 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .a4-page { width: 210mm; min-height: 297mm; position: relative; padding: 18mm 15mm 30mm 15mm; page-break-after: always; background: #FFFFFF; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); overflow: hidden; flex-shrink: 0; }
         
-        /* 🛡️ 巨幅矢量水印 */
         .watermark-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; }
         .watermark-text { font-size: 80px; font-weight: 900; color: #000; opacity: var(--watermark-opacity); transform: rotate(-45deg); white-space: nowrap; font-family: sans-serif; text-transform: uppercase; letter-spacing: 10px; }
 
@@ -115,7 +113,6 @@ async def generate_html(req: FormatRequest):
         [contenteditable="true"]:hover { background-color: rgba(113, 176, 246, 0.03); cursor: text; }
         .eraser-mode * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23EF4444" stroke-width="2"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"/><line x1="18" y1="13" x2="11" y2="20"/></svg>') 0 20, crosshair !important; }
 
-        /* 🚀 玻璃拟物面板 */
         .control-panel { width: 340px; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(15px); padding: 24px; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8); border: 1px solid rgba(226, 232, 240, 0.8); height: fit-content; position: sticky; top: 30px; z-index: 1000; flex-shrink: 0; max-height: 95vh; overflow-y: auto; }
         .control-panel::-webkit-scrollbar { width: 4px; } .control-panel::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         
@@ -126,22 +123,21 @@ async def generate_html(req: FormatRequest):
         .ctrl-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-main { background: var(--c-primary); color: #fff; border: none; padding: 14px; margin-top: 10px; }
 
-        /* 色板样式 */
         .color-row { display:flex; justify-content:space-between; margin-bottom:10px; align-items:center; }
         .color-tool-btn { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; transition:0.2s; color:#475569;}
         .color-tool-btn:hover { background:#e2e8f0; color:#0f172a;}
 
-        /* 收藏夹小徽章 */
         .preset-badge { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: 0.2s; }
         .preset-badge:hover { transform: scale(1.2); }
 
-        .ctrl-group { margin-bottom: 16px; } 
+        .ctrl-group { margin-bottom: 10px; } 
+        .ctrl-group label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #94a3b8; font-weight: 600; }
+        .ctrl-group label span { color: #0f172a; font-weight: 700; }
         .ctrl-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background: #f8fafc; cursor: pointer; }
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--c-primary); cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
 
-        /* Notion 划词菜单 & 寻色器 */
         #inspector-tooltip { position: fixed; display: none; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); color: #f8fafc; padding: 14px 18px; border-radius: 12px; font-size: 12px; z-index: 99999; pointer-events: none; line-height: 1.6; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.15); }
         #notion-hover-menu { position: fixed; display: none; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); padding: 8px 14px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 10000; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.1); flex-direction: column; align-items: flex-start;}
         .hover-color-btn { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 1.5px solid rgba(255,255,255,0.2); transition: transform 0.1s; }
@@ -202,16 +198,21 @@ async def generate_html(req: FormatRequest):
                     </optgroup>
                 </select>
             </div>
-            <div style="margin-bottom:12px;">
+            
+            <div style="margin-bottom:16px;">
                 <label style="font-size:12px; font-weight:700; color:#64748b;">🔏 版权与水印</label>
                 <input type="text" id="in-watermark" placeholder="输入您的品牌水印..." oninput="updateWatermark()" style="width:100%; padding:8px; border-radius:6px; border:1px solid #e2e8f0; margin-top:5px; font-size:13px; background:#f8fafc; outline:none;">
                 <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:11px; color:#94a3b8; align-items:center;">
                     <span>透明度</span><input type="range" id="sl-watermark-opacity" min="0" max="0.3" step="0.01" value="0.05" oninput="updateWatermark()" style="width:70%;">
                 </div>
             </div>
+            
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="ctrl-group"><label style="font-size:11px; color:#94a3b8;">字号 <span id="val-f-size-base" style="color:#0f172a">14px</span></label><input type="range" id="sl-f-size-base" min="12" max="22" value="14"></div>
-                <div class="ctrl-group"><label style="font-size:11px; color:#94a3b8;">行距 <span id="val-line-height" style="color:#0f172a">1.8</span></label><input type="range" id="sl-line-height" min="1.2" max="2.5" step="0.1" value="1.8"></div>
+                <div class="ctrl-group"><label>正文字号 <span id="val-f-size-base">14px</span></label><input type="range" id="sl-f-size-base" min="12" max="24" value="14"></div>
+                <div class="ctrl-group"><label>标题字号 <span id="val-f-size-title">18px</span></label><input type="range" id="sl-f-size-title" min="14" max="36" value="18"></div>
+                <div class="ctrl-group"><label>全局行距 <span id="val-line-height">1.8</span></label><input type="range" id="sl-line-height" min="1.2" max="3" step="0.1" value="1.8"></div>
+                <div class="ctrl-group"><label>全局字距 <span id="val-letter-spacing">0px</span></label><input type="range" id="sl-letter-spacing" min="-1" max="10" step="0.5" value="0"></div>
+                <div class="ctrl-group" style="grid-column: span 2; margin-bottom: 0;"><label>卡片圆角 <span id="val-radius-card">6px</span></label><input type="range" id="sl-radius-card" min="0" max="30" value="6"></div>
             </div>
         </div>
 
@@ -251,7 +252,6 @@ async def generate_html(req: FormatRequest):
         function safeSetStorage(k,v) { try { localStorage.setItem(k,v); } catch(e){} }
         window.resetSettings = function() { if(confirm('确定清空所有本地配置吗？')) { try{ localStorage.clear(); }catch(e){} location.reload(); } };
 
-        // 🚀 全局同步页眉页脚
         document.addEventListener('input', e => {
             if (e.target.classList.contains('sync-text')) {
                 const key = e.target.dataset.key; const val = e.target.innerHTML;
@@ -279,9 +279,6 @@ async def generate_html(req: FormatRequest):
             return p;
         }
 
-        // ==========================================
-        // 📄 文档控制三剑客 (清空 / 还原 / 重新分页)
-        // ==========================================
         window.clearAllContent = function() {
             if(confirm('⚠️ 确定要清空所有内容，变成一张白纸吗？')) {
                 document.querySelectorAll('.a4-page').forEach(p => p.remove());
@@ -290,7 +287,7 @@ async def generate_html(req: FormatRequest):
         };
 
         window.restoreOriginal = function() {
-            if(confirm('⏪ 确定要放弃所有手动修改，还原回大模型最初的排版状态吗？')) {
+            if(confirm('⏪ 确定要放弃所有手动修改，还原回最初排版状态吗？')) {
                 document.querySelectorAll('.a4-page').forEach(p => p.remove());
                 pageCount = 0; dynH = getSafeH();
                 const src = document.getElementById('source-data');
@@ -299,7 +296,6 @@ async def generate_html(req: FormatRequest):
             }
         };
 
-        // 🎨 实体化混色引擎 (4色系统)
         function mix(rgb, p) { 
             const w=255; const f=p/100; 
             const r=(v)=>Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0');
@@ -310,7 +306,6 @@ async def generate_html(req: FormatRequest):
             try {
                 const ct = new ColorThief();
                 const palette = ct.getPalette(img, 6).sort((a,b) => (0.299*a[0]+0.587*a[1]+0.114*a[2]) - (0.299*b[0]+0.587*b[1]+0.114*b[2]));
-                
                 const domRGB = ct.getColor(img);
                 const rgbToHex = (r,g,b) => '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
                 
@@ -337,7 +332,7 @@ async def generate_html(req: FormatRequest):
 
                 initDynamicColorPanel();
                 alert('🎉 4色魔法引擎提取成功！主题已更新。');
-            } catch(e) { alert('提取颜色失败，请换一张色彩更丰富的图片重试！'); }
+            } catch(e) { alert('提取颜色失败，请换一张色彩丰富的图片重试！'); }
         }
 
         window.handlePaste = function(e) {
@@ -373,13 +368,12 @@ async def generate_html(req: FormatRequest):
             let list = JSON.parse(localStorage.getItem('my_themes') || '[]');
             list.forEach(theme => {
                 const b = document.createElement('div'); b.className = 'preset-badge'; b.style.background = theme['--c-primary'];
-                b.title = "点击切换至此主题";
+                b.title = "点击切换主题";
                 b.onclick = () => { Object.keys(theme).forEach(k => root.setProperty(k, theme[k])); initDynamicColorPanel(); };
                 container.appendChild(b);
             });
         }
 
-        // 🎨 样式注入核心（升级半高马克笔与手账批注）
         window.applyToText = function(varName, command) { const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); if (color) document.execCommand(command, false, color); };
         
         window.applyStyleSpan = function(color, type) {
