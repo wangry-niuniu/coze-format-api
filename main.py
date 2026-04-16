@@ -70,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成
+    # 🚨 战区三：终极引擎代码生成 (V4.2 终极毕业版)
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -270,9 +270,26 @@ async def generate_html(req: FormatRequest):
         const root = document.documentElement.style;
         const DOC_CAT = '__DOC_CATEGORY__'; const DOC_TIT = '__DOC_TITLE__';
         let pageCount = 0; 
-        let dynH = 850; // 🚨 终极防弹：焊死 A4 高度，绝不允许它测出 0
+        let dynH = 930;
 
-        function getSafeH() { return 850; } // 废除动态测量，防止因浏览器卡顿导致死循环白纸
+        // 🚨 终极防弹：精准测量当前屏幕 DPI 下的真实可用高度，不再写死像素！
+        function getSafeH() { 
+            try {
+                let t = document.createElement('div');
+                // A4 总高度 297mm - 顶部 padding 18mm - 底部 padding 30mm = 249mm
+                // 我们设定 248mm，保留 1mm 的极限安全缓冲
+                t.style.height = '248mm'; 
+                t.style.position = 'absolute';
+                t.style.visibility = 'hidden';
+                document.body.appendChild(t);
+                let h = t.getBoundingClientRect().height;
+                document.body.removeChild(t);
+                return h > 100 ? h : 930;
+            } catch(e) {
+                return 930;
+            }
+        }
+        
         function safeGetStorage(k) { try { return localStorage.getItem(k); } catch(e){ return null;} }
         function safeSetStorage(k,v) { try { localStorage.setItem(k,v); } catch(e){} }
         window.resetSettings = function() { if(confirm('确定清空所有本地配置吗？')) { try{ localStorage.clear(); }catch(e){} location.reload(); } };
@@ -304,21 +321,23 @@ async def generate_html(req: FormatRequest):
             return p;
         }
 
-        // 🚨 核弹级脱壳橡皮擦：暴力撕掉所有隐形乱入的外壳
+        // 🚨 核弹级脱壳橡皮擦：采用无损洗脱法，绝对保护底层文本节点！
         window.clearManualStyles = function() {
             if(confirm('🧹 确定要清除所有手动涂抹的颜色、高亮和批注吗？\\n（只会清除手改的样式，不会删除文字。若想彻底还原大模型排版，请点击【还原原文】）')) {
-                const elements = document.querySelectorAll('.page-content span, .page-content font');
-                elements.forEach(el => {
-                    const isBuiltIn = el.className && typeof el.className === 'string' && el.className.length > 0 && el.className !== 'text-block';
-                    if (!isBuiltIn) {
-                        // 如果是你自己画的（没带系统类名），直接把外壳撕了
-                        const text = document.createTextNode(el.textContent);
-                        el.parentNode.replaceChild(text, el);
-                    } else {
-                        // 如果是系统原本的带颜色的块，就帮它洗个澡，去掉额外加的样式
-                        el.style.color = ''; el.style.background = ''; el.style.backgroundColor = '';
-                        el.style.textDecoration = ''; el.style.textEmphasis = ''; el.style.webkitTextEmphasis = '';
-                    }
+                document.querySelectorAll('.page-content *').forEach(el => {
+                    // 只清洗我们画上去的内联样式，绝对不碰节点的物理结构
+                    el.style.color = ''; 
+                    el.style.background = ''; 
+                    el.style.backgroundColor = '';
+                    el.style.textDecoration = ''; 
+                    el.style.textEmphasis = ''; 
+                    el.style.webkitTextEmphasis = '';
+                });
+                // 把某些浏览器强制生成的 font 标签的属性也洗掉
+                document.querySelectorAll('.page-content font').forEach(el => {
+                    el.removeAttribute('color');
+                    el.removeAttribute('size');
+                    el.removeAttribute('face');
                 });
             }
         };
@@ -326,7 +345,7 @@ async def generate_html(req: FormatRequest):
         window.restoreOriginal = function() {
             if(confirm('⏪ 确定要放弃所有手动修改，还原回最初排版状态吗？')) {
                 document.querySelectorAll('.a4-page').forEach(p => p.remove());
-                pageCount = 0; dynH = 850;
+                pageCount = 0; dynH = getSafeH();
                 const src = document.getElementById('source-data');
                 src.innerHTML = window.__ORIGINAL_HTML_BACKUP__;
                 const nodes = Array.from(src.childNodes).map(n => n.cloneNode(true));
@@ -425,19 +444,16 @@ async def generate_html(req: FormatRequest):
             list.forEach((theme, index) => {
                 const b = document.createElement('div'); b.className = 'preset-badge'; b.style.background = theme['--c-primary'];
                 
-                // 🚨 修复 Python 转义报错：使用 \\n 
                 b.title = "左键：切换至此主题\\n右键：取消收藏该主题";
                 
-                // 左键：切换主题
                 b.onclick = () => { Object.keys(theme).forEach(k => root.setProperty(k, theme[k])); initDynamicColorPanel(); };
                 
-                // 右键：呼出取消收藏确认框
                 b.oncontextmenu = (e) => {
-                    e.preventDefault(); // 拦截浏览器默认的右键菜单
+                    e.preventDefault(); 
                     if(confirm('🗑️ 确定要取消收藏这个主题色彩吗？')) {
-                        list.splice(index, 1); // 从数组中精准剔除
-                        localStorage.setItem('my_themes', JSON.stringify(list)); // 更新本地存储
-                        renderThemePresets(); // 瞬间重新渲染，徽章消失！
+                        list.splice(index, 1); 
+                        localStorage.setItem('my_themes', JSON.stringify(list)); 
+                        renderThemePresets(); 
                     }
                 };
                 
@@ -624,11 +640,10 @@ async def generate_html(req: FormatRequest):
         window.recalculatePagination = function() { 
             const allContents = document.querySelectorAll('.a4-page .page-content'); if (allContents.length === 0) return; 
             const allNodes = []; 
-            // 🚨 终极防漏补丁：捕获所有你敲进去的纯文字节点，绝不遗漏
             allContents.forEach(content => { Array.from(content.childNodes).forEach(child => allNodes.push(child)); }); 
             document.querySelectorAll('.a4-page').forEach(page => page.remove()); 
             pageCount = 0; 
-            dynH = 850; // 🚨 强行焊死！
+            dynH = getSafeH(); // 🚨 精准获取屏幕比例高度
             runPaginationEngine(allNodes); 
         };
 
@@ -713,8 +728,8 @@ async def generate_html(req: FormatRequest):
                 initLayoutControls(); initDynamicColorPanel();
                 const src = document.getElementById('source-data');
                 window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; 
-                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
-                setTimeout(() => { dynH = 850; runPaginationEngine(nodes); }, 300);
+                const nodes = Array.from(src.childNodes).map(n => n.cloneNode(true));
+                setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);
             } catch(e){}
         });
     </script>
