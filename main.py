@@ -70,7 +70,7 @@ async def generate_html(req: FormatRequest):
     safe_original_json = json.dumps(extracted_text.strip(), ensure_ascii=False).replace("</", "<\\/")
 
     # =======================================================
-    # 🚨 战区三：终极引擎代码生成 (V4.2 终极毕业版)
+    # 🚨 战区三：终极引擎代码生成 (包含页眉记忆修复)
     # =======================================================
     html_template = "\ufeff" + """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -259,7 +259,7 @@ async def generate_html(req: FormatRequest):
         <div style="padding:15px 24px; background:#f8fafc; font-size:12px; border-bottom:1px solid #e2e8f0; color:#475569;">
             * 点击红色词块即可 <strong style="color:#b91c1c;">一键复制</strong>，随后在左侧粘贴补回。
         </div>
-        <div id="diff-content-area" style="flex:1; overflow-y:auto; padding:24px; font-size:14px; line-height:1.8; white-space: pre-wrap;"></div>
+        <div id="diff-content-area" style="flex:1; overflow-y:auto; padding:24px; font-size:14px; line-height:1.8;"></div>
     </div>
 
     <div id="source-data" style="display:none;">__CONTENT_AREA__</div>
@@ -268,16 +268,18 @@ async def generate_html(req: FormatRequest):
 
     <script>
         const root = document.documentElement.style;
-        const DOC_CAT = '__DOC_CATEGORY__'; const DOC_TIT = '__DOC_TITLE__';
-        let pageCount = 0; 
-        let dynH = 930;
+        // 🚨 终极防丢失状态机：实时保存你打过的字
+        let headerFooterState = {
+            'h-left': '__DOC_CATEGORY__',
+            'h-right': '__DOC_TITLE__',
+            'f-left': '内部教研',
+            'f-right': '独家整理'
+        };
+        let pageCount = 0; let dynH = 930;
 
-        // 🚨 终极防弹：精准测量当前屏幕 DPI 下的真实可用高度，不再写死像素！
         function getSafeH() { 
             try {
                 let t = document.createElement('div');
-                // A4 总高度 297mm - 顶部 padding 18mm - 底部 padding 30mm = 249mm
-                // 我们设定 248mm，保留 1mm 的极限安全缓冲
                 t.style.height = '248mm'; 
                 t.style.position = 'absolute';
                 t.style.visibility = 'hidden';
@@ -285,9 +287,7 @@ async def generate_html(req: FormatRequest):
                 let h = t.getBoundingClientRect().height;
                 document.body.removeChild(t);
                 return h > 100 ? h : 930;
-            } catch(e) {
-                return 930;
-            }
+            } catch(e) { return 930; }
         }
         
         function safeGetStorage(k) { try { return localStorage.getItem(k); } catch(e){ return null;} }
@@ -297,6 +297,7 @@ async def generate_html(req: FormatRequest):
         document.addEventListener('input', e => {
             if (e.target.classList.contains('sync-text')) {
                 const key = e.target.dataset.key; const val = e.target.innerHTML;
+                headerFooterState[key] = val; // 🚨 每次打字，实时存入记忆芯片
                 document.querySelectorAll(`.sync-text[data-key="${key}"]`).forEach(el => { if(el !== e.target) el.innerHTML = val; });
             }
         });
@@ -304,28 +305,27 @@ async def generate_html(req: FormatRequest):
         function createNewPage() {
             pageCount++;
             const p = document.createElement('div'); p.className = 'a4-page';
+            // 🚨 造纸时，从记忆芯片里读取你最新的修改！
             p.innerHTML = `
                 <div class="watermark-container"><div class="watermark-text"></div></div>
                 <div class="page-header">
-                    <span class="sync-text" data-key="h-left" contenteditable="true">${DOC_CAT}</span>
-                    <span class="sync-text" data-key="h-right" contenteditable="true">${DOC_TIT}</span>
+                    <span class="sync-text" data-key="h-left" contenteditable="true">${headerFooterState['h-left']}</span>
+                    <span class="sync-text" data-key="h-right" contenteditable="true">${headerFooterState['h-right']}</span>
                 </div>
                 <div class="page-content" contenteditable="true" spellcheck="false"></div>
                 <div class="page-footer">
-                    <span class="f-left sync-text" data-key="f-left" contenteditable="true">内部教研</span>
+                    <span class="f-left sync-text" data-key="f-left" contenteditable="true">${headerFooterState['f-left']}</span>
                     <span class="f-center">- ${pageCount} -</span>
-                    <span class="f-right sync-text" data-key="f-right" contenteditable="true">独家整理</span>
+                    <span class="f-right sync-text" data-key="f-right" contenteditable="true">${headerFooterState['f-right']}</span>
                 </div>`;
             document.getElementById('main-a4-container').appendChild(p);
             updateWatermark();
             return p;
         }
 
-        // 🚨 核弹级脱壳橡皮擦：采用无损洗脱法，绝对保护底层文本节点！
         window.clearManualStyles = function() {
             if(confirm('🧹 确定要清除所有手动涂抹的颜色、高亮和批注吗？\\n（只会清除手改的样式，不会删除文字。若想彻底还原大模型排版，请点击【还原原文】）')) {
                 document.querySelectorAll('.page-content *').forEach(el => {
-                    // 只清洗我们画上去的内联样式，绝对不碰节点的物理结构
                     el.style.color = ''; 
                     el.style.background = ''; 
                     el.style.backgroundColor = '';
@@ -333,7 +333,6 @@ async def generate_html(req: FormatRequest):
                     el.style.textEmphasis = ''; 
                     el.style.webkitTextEmphasis = '';
                 });
-                // 把某些浏览器强制生成的 font 标签的属性也洗掉
                 document.querySelectorAll('.page-content font').forEach(el => {
                     el.removeAttribute('color');
                     el.removeAttribute('size');
@@ -582,11 +581,11 @@ async def generate_html(req: FormatRequest):
                     const cleanName = v.replace('--c-','');
                     const row = document.createElement('div'); row.className = 'color-row';
                     row.innerHTML = `
-                        <span style=\"font-size:12px; color:#475569; font-weight:600;\">${cleanName}</span>
-                        <div style=\"display:flex; gap:4px; align-items:center;\">
-                            <input type=\"color\" value=\"${current}\" oninput=\"root.setProperty('${v}', this.value); safeSetStorage('${v}', this.value); buildHoverToolbar();\" style=\"width:24px; height:24px; border:none; background:none; cursor:pointer; padding:0;\">
-                            <button class=\"color-tool-btn\" title=\"文字上色\" onclick=\"applyToText('${v}', 'foreColor')\"><span style=\"font-family:serif; font-weight:bold; font-size:14px;\">A</span></button>
-                            <button class=\"color-tool-btn\" title=\"马克笔半高亮\" onclick=\"applyStyleSpan('${current}', 'marker')\"><div style=\"width:12px; height:12px; background:linear-gradient(transparent 50%, currentColor 50%); border-radius:2px;\"></div></button>
+                        <span style="font-size:12px; color:#475569; font-weight:600;">${cleanName}</span>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <input type="color" value="${current}" oninput="root.setProperty('${v}', this.value); safeSetStorage('${v}', this.value); buildHoverToolbar();" style="width:24px; height:24px; border:none; background:none; cursor:pointer; padding:0;">
+                            <button class="color-tool-btn" title="文字上色" onclick="applyToText('${v}', 'foreColor')"><span style="font-family:serif; font-weight:bold; font-size:14px;">A</span></button>
+                            <button class="color-tool-btn" title="马克笔半高亮" onclick="applyStyleSpan('${current}', 'marker')"><div style="width:12px; height:12px; background:linear-gradient(transparent 50%, currentColor 50%); border-radius:2px;"></div></button>
                         </div>`;
                     if(['primary', 'star', 'highlight', 'accent', 'main'].some(k => v.includes(k))) base.appendChild(row); else comp.appendChild(row);
                 }
@@ -643,7 +642,7 @@ async def generate_html(req: FormatRequest):
             allContents.forEach(content => { Array.from(content.childNodes).forEach(child => allNodes.push(child)); }); 
             document.querySelectorAll('.a4-page').forEach(page => page.remove()); 
             pageCount = 0; 
-            dynH = getSafeH(); // 🚨 精准获取屏幕比例高度
+            dynH = getSafeH();
             runPaginationEngine(allNodes); 
         };
 
@@ -671,7 +670,7 @@ async def generate_html(req: FormatRequest):
             const tt = document.getElementById('inspector-tooltip'); tt.style.display = 'block'; tt.style.left = (e.clientX+15)+'px'; tt.style.top = (e.clientY+15)+'px';
             let c = window.getComputedStyle(t).color; let bg = window.getComputedStyle(t).backgroundColor;
             let cN = colorVarMap[c] ? colorVarMap[c].join(' / ') : '默认'; let bgN = colorVarMap[bg] ? colorVarMap[bg].join(' / ') : (bg === 'rgba(0, 0, 0, 0)' ? '透明' : '默认');
-            tt.innerHTML = `标签: &lt;${t.tagName.toLowerCase()}&gt;<br>类名: ${Array.from(t.classList).join(', ') || '正文'}<br><br>字色: <span style=\"display:inline-block;width:10px;height:10px;background:${c};\"></span> ${cN}<br>背景: <span style=\"display:inline-block;width:10px;height:10px;background:${bg};\"></span> ${bgN}`;
+            tt.innerHTML = `标签: &lt;${t.tagName.toLowerCase()}&gt;<br>类名: ${Array.from(t.classList).join(', ') || '正文'}<br><br>字色: <span style="display:inline-block;width:10px;height:10px;background:${c};"></span> ${cN}<br>背景: <span style="display:inline-block;width:10px;height:10px;background:${bg};"></span> ${bgN}`;
         }
 
         window.toggleFormatPainter = function() {
@@ -705,7 +704,7 @@ async def generate_html(req: FormatRequest):
             const s = document.getElementById('diff-sidebar'); const isOpen = s.style.right === '0px';
             s.style.right = isOpen ? '-450px' : '0px'; document.getElementById('main-a4-container').style.marginRight = isOpen ? '0' : '300px';
             if(!isOpen) {
-                const area = document.getElementById('diff-content-area'); area.innerHTML = '<div style=\"text-align:center; padding:40px;\">🔄 比对中...</div>';
+                const area = document.getElementById('diff-content-area'); area.innerHTML = '<div style="text-align:center; padding:40px;">🔄 比对中...</div>';
                 setTimeout(() => {
                     try {
                         const raw = JSON.parse(document.getElementById('raw-source-data').textContent);
@@ -713,11 +712,11 @@ async def generate_html(req: FormatRequest):
                         const dmp = new diff_match_patch(); dmp.Diff_Timeout = 2; const diffs = dmp.diff_main(raw, cur); dmp.diff_cleanupSemantic(diffs);
                         let h = ""; let missingCount = 0;
                         diffs.forEach(d => {
-                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class=\"diff-missing\" title=\"点击复制\" onclick=\"copyTxt('${encodeURIComponent(d[1])}', this)\">${d[1]}</span>`; } else h+=d[1]; }
-                            else if(d[0]===0) h += `<span style=\"color:#94a3b8\">${d[1]}</span>`;
+                            if(d[0]===-1) { if(d[1].trim().length>0) { missingCount++; h += `<span class="diff-missing" title="点击复制" onclick="copyTxt('${encodeURIComponent(d[1])}', this)">${d[1]}</span>`; } else h+=d[1]; }
+                            else if(d[0]===0) h += `<span style="color:#94a3b8">${d[1]}</span>`;
                         });
-                        area.innerHTML = missingCount===0 ? '<div style=\"color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;\">🎉 完美通关！无漏字。</div>' : h;
-                    } catch(e) { area.innerHTML = '<div style=\"color:#b91c1c;\">⚠️ 比对失败，数据异常。</div>'; }
+                        area.innerHTML = missingCount===0 ? '<div style="color:#15803d; font-weight:800; padding:40px; text-align:center; border:2px dashed #bbf7d0; border-radius:8px; margin:20px; background:#f0fdf4;">🎉 完美通关！无漏字。</div>' : h;
+                    } catch(e) { area.innerHTML = '<div style="color:#b91c1c;">⚠️ 比对失败，数据异常。</div>'; }
                 }, 300);
             }
         }
@@ -728,7 +727,7 @@ async def generate_html(req: FormatRequest):
                 initLayoutControls(); initDynamicColorPanel();
                 const src = document.getElementById('source-data');
                 window.__ORIGINAL_HTML_BACKUP__ = src.innerHTML; 
-                const nodes = Array.from(src.childNodes).map(n => n.cloneNode(true));
+                const nodes = Array.from(src.children).map(n => n.cloneNode(true));
                 setTimeout(() => { dynH = getSafeH(); runPaginationEngine(nodes); }, 300);
             } catch(e){}
         });
